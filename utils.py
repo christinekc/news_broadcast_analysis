@@ -1,5 +1,5 @@
-import os
 import cv2
+import os
 
 def make_video(imgs_dir, vid_name, fps):
     """
