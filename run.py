@@ -11,6 +11,11 @@ def train(**kwargs):
     train_model(**kwargs)
 
 @main.command()
+def predict(**kwargs):
+    from train import predict
+    predict(**kwargs)
+
+@main.command()
 @click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
 @click.option("--logo_path", "-d", type=Path, default="data/logo1.png")
 def detect_logo(**kwargs):
