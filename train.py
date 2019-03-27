@@ -216,25 +216,29 @@ def predict():
     print(result)
 
 def face_detection(input_dir, output_dir):
-    print(face_detection)
+    print("face_detection")
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
     for filename in os.listdir(input_dir):
         if not filename.endswith(".jpg"):
             continue
 
-        # Color detection
-        lower1 = np.array([0, 48, 80])
-        upper1 = np.array([20, 255, 255])
-        mask1 = cv2.inRange(hsv_img, lower1, upper1) # img_hsv.shape
-        lower2 = np.array([170, 0, 0])
-        upper2 = np.array([180, 255, 255])
-        mask2 = cv2.inRange(hsv_img, lower2, upper2) # img_hsv.shape
-        mask = cv2.bitwise_or(mask1, mask2)
+        img = cv2.imread(os.path.join(input_dir, filename))
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
-        # mask = cv2.erode(mask, kernel, iterations=2)
-        # mask = cv2.dilate(mask, kernel, iterations=2)
-        # mask = cv2.GaussianBlur(mask, (3, 3), 0)
-        new_img = cv2.bitwise_and(img, img, mask=mask)
-        cv2.imwrite(os.path.join(output_dir, filename), new_img)
+        # HSV color detection
+        # hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+        # lower1 = np.array([0, 48, 80])
+        # upper1 = np.array([20, 255, 255])
+        # mask1 = cv2.inRange(hsv_img, lower1, upper1) # img_hsv.shape
+        # lower2 = np.array([170, 0, 0])
+        # upper2 = np.array([180, 255, 255])
+        # mask2 = cv2.inRange(hsv_img, lower2, upper2) # img_hsv.shape
+        # mask = cv2.bitwise_or(mask1, mask2)
+
+        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
+        # # mask = cv2.erode(mask, kernel, iterations=2)
+        # # mask = cv2.dilate(mask, kernel, iterations=2)
+        # # mask = cv2.GaussianBlur(mask, (3, 3), 0)
+        # new_img = cv2.bitwise_and(img, img, mask=mask)
+        # cv2.imwrite(os.path.join(output_dir, filename), new_img)
