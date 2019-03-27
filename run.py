@@ -17,6 +17,20 @@ def predict(**kwargs):
 
 @main.command()
 @click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
+@click.option("--output_dir", "-o", type=Path, default="output/clip_1_hsv/")
+def face_detection(**kwargs):
+    from train import face_detection
+    face_detection(**kwargs)
+
+@main.command()
+@click.option("--input_dir", "-d", type=Path, default="original_data/female/")
+@click.option("--output_dir", "-o", type=Path, default="data/female_warped/")
+def warp_face(**kwargs):
+    from train import warp_face
+    warp_face(**kwargs)
+
+@main.command()
+@click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
 @click.option("--logo_path", "-d", type=Path, default="data/logo1.png")
 def detect_logo(**kwargs):
     from detect import detect_logo
