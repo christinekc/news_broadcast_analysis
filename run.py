@@ -17,10 +17,11 @@ def predict(**kwargs):
 
 @main.command()
 @click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
-@click.option("--output_dir", "-o", type=Path, default="output/clip_1_hsv/")
+@click.option("--output_dir", "-o", type=Path, default="output/clip_1_face/")
 def face_detection(**kwargs):
-    from train import face_detection
-    face_detection(**kwargs)
+    from train import face_detection_hsv, face_detection_cascade
+    # face_detection_hsv(**kwargs)
+    face_detection_cascade(**kwargs)
 
 @main.command()
 @click.option("--input_dir", "-d", type=Path, default="original_data/female/")

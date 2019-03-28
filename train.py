@@ -215,30 +215,52 @@ def predict():
     result = model.score(x_test, y_test)
     print(result)
 
-def face_detection(input_dir, output_dir):
-    print("face_detection")
+def face_detection_hsv(input_dir, output_dir):
+    print("face_detection_hsv")
+
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
     for filename in os.listdir(input_dir):
         if not filename.endswith(".jpg"):
             continue
-
         img = cv2.imread(os.path.join(input_dir, filename))
 
         # HSV color detection
-        # hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-        # lower1 = np.array([0, 48, 80])
-        # upper1 = np.array([20, 255, 255])
-        # mask1 = cv2.inRange(hsv_img, lower1, upper1) # img_hsv.shape
-        # lower2 = np.array([170, 0, 0])
-        # upper2 = np.array([180, 255, 255])
-        # mask2 = cv2.inRange(hsv_img, lower2, upper2) # img_hsv.shape
-        # mask = cv2.bitwise_or(mask1, mask2)
+        lower1 = np.array([0, 48, 80])
+        upper1 = np.array([20, 255, 255])
+        mask1 = cv2.inRange(hsv_img, lower1, upper1) # img_hsv.shape
+        lower2 = np.array([170, 0, 0])
+        upper2 = np.array([180, 255, 255])
+        mask2 = cv2.inRange(hsv_img, lower2, upper2) # img_hsv.shape
+        mask = cv2.bitwise_or(mask1, mask2)
 
-        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
-        # # mask = cv2.erode(mask, kernel, iterations=2)
-        # # mask = cv2.dilate(mask, kernel, iterations=2)
-        # # mask = cv2.GaussianBlur(mask, (3, 3), 0)
-        # new_img = cv2.bitwise_and(img, img, mask=mask)
-        # cv2.imwrite(os.path.join(output_dir, filename), new_img)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
+        # mask = cv2.erode(mask, kernel, iterations=2)
+        # mask = cv2.dilate(mask, kernel, iterations=2)
+        # mask = cv2.GaussianBlur(mask, (3, 3), 0)
+        new_img = cv2.bitwise_and(img, img, mask=mask)
+        cv2.imwrite(os.path.join(output_dir, filename), new_img)
+
+def face_detection_cascade(input_dir, output_dir):
+    print("face_detection_cascade")
+    XML_FILENAME = "cascade.xml"
+
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+    for filename in os.listdir(input_dir):
+        if not filename.endswith(".jpg"):
+            continue
+        img = cv2.imread(os.path.join(input_dir, filename))
+        img_g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        # Cascade face detection
+        classifier = cv2.CascadeClassifier(XML_FILENAME)
+        faces = classifier.detectMultiScale(img_g, scaleFactor=1.2,
+            minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
+
+        # Draw a box around each face
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
+        cv2.imwrite(os.path.join(output_dir, filename), img)
