@@ -6,29 +6,24 @@ def main():
     pass
 
 @main.command()
+@click.option("--model_path", "-m", type=Path, default="svm_model.sav")
 def train(**kwargs):
     from train import train_model
     train_model(**kwargs)
 
 @main.command()
 def predict(**kwargs):
-    from train import predict
-    predict(**kwargs)
+    from train import predict_model
+    predict_model(**kwargs)
 
 @main.command()
 @click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
 @click.option("--output_dir", "-o", type=Path, default="output/clip_1_face/")
+@click.option("--model_path", "-m", type=Path, default="svm_model.sav")
 def face_detection(**kwargs):
     from train import face_detection_hsv, face_detection_cascade
     # face_detection_hsv(**kwargs)
     face_detection_cascade(**kwargs)
-
-@main.command()
-@click.option("--input_dir", "-d", type=Path, default="original_data/female/")
-@click.option("--output_dir", "-o", type=Path, default="data/female_warped/")
-def warp_face(**kwargs):
-    from train import warp_face
-    warp_face(**kwargs)
 
 @main.command()
 @click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")

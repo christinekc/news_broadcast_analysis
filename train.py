@@ -9,16 +9,16 @@ from skimage import transform as tf
 from skimage.color import rgb2hsv
 from sklearn import svm
 
-def visualize_distributions(new_dir):
+def visualize_distributions(imgs_dir):
     """
-    Visualize the distributions of values in HSV and BGR of pictures in new_dir.
+    Visualize the distributions of values in HSV and BGR of pictures in imgs_dir.
     """
     H, S, V = None, None, None
     B, G, R = None, None, None
-    for filename in os.listdir(new_dir):
+    for filename in os.listdir(imgs_dir):
             if not filename.endswith(".png"):
                 continue
-            img = cv2.imread(new_dir + filename)
+            img = cv2.imread(imgs_dir + filename)
             hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
             if H is None:
                 H = hsv_img[..., 0].flatten()
@@ -56,7 +56,7 @@ def visualize_distributions(new_dir):
     plt.xlabel("Value")
     plt.ylabel("Frequency")
     f.tight_layout()
-    f.savefig(new_dir + "_hsv_distributions.png")
+    f.savefig(imgs_dir + "_hsv_distributions.png")
     plt.show()
 
     f = plt.figure()
@@ -79,7 +79,7 @@ def visualize_distributions(new_dir):
     plt.xlabel("Value")
     plt.ylabel("Frequency")
     f.tight_layout()
-    f.savefig(new_dir + "_rgb_distributions.png")
+    f.savefig(imgs_dir + "_rgb_distributions.png")
     plt.show()
 
 def crop_images(old_dir, new_dir):
@@ -168,12 +168,11 @@ def get_features(input_dir):
             des = np.concatenate([des, d], axis=0)
     return kps, des
 
-def train_model():
+def train_model(model_path):
     OLD_F_DIR = "original_data/female/"
     OLD_M_DIR = "original_data/male/"
     F_TRAIN_DIR = "data/female_train/"
     M_TRAIN_DIR = "data/male_train/"
-    MODEL_NAME = "svm_model.sav"
 
     if not os.path.isdir("data/"):
         os.mkdir("data/")
@@ -187,20 +186,20 @@ def train_model():
 
     # model = svm.LinearSVC(C=1.0) # 0.4947
     # model = svm.LinearSVC(C=10.0) # 0.5370
-    model = svm.LinearSVC(C=50.0) # 0.5200
+    # model = svm.LinearSVC(C=50.0) # 0.5200
     # model = svm.LinearSVC(C=100.0) # 0.5137
     # model = svm.SVC(kernel="rbf", C=1.0) # 0.4691
     # model = svm.SVC(kernel="rbf", gamma="scale", C=1.0) # 0.6106
-    # model = svm.SVC(kernel="rbf", gamma="scale", C=10.0) # 0.6221
+    model = svm.SVC(kernel="rbf", gamma="scale", C=10.0) # 0.6221
     # model = svm.SVC(kernel="rbf", gamma="scale", C=100.0) # 0.61195
     print("Start training")
     model.fit(x_train, y_train)
 
     # Save model
-    pickle.dump(model, open(MODEL_NAME, "wb"))
-    print("Model saved as " + MODEL_NAME)
+    pickle.dump(model, open(model_path, "wb"))
+    print("Model saved as " + model_path)
 
-def predict():
+def predict_model():
     F_TEST_DIR = "data/female_test/"
     M_TEST_DIR = "data/male_test/"
     MODEL_NAME = "svm_model.sav"
@@ -243,12 +242,20 @@ def face_detection_hsv(input_dir, output_dir):
         new_img = cv2.bitwise_and(img, img, mask=mask)
         cv2.imwrite(os.path.join(output_dir, filename), new_img)
 
-def face_detection_cascade(input_dir, output_dir):
+def face_detection_cascade(input_dir, output_dir, model_path):
     print("face_detection_cascade")
     XML_FILENAME = "cascade.xml"
+    F_TEXT = "Female"
+    M_TEXT = "Male"
+    F_COLOR = (0, 0, 255)
+    M_COLOR = (255, 0, 0)
+
+    model = pickle.load(open(model_path, "rb"))
+    sift = cv2.xfeatures2d.SIFT_create()
 
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
+
     for filename in os.listdir(input_dir):
         if not filename.endswith(".jpg"):
             continue
@@ -257,10 +264,28 @@ def face_detection_cascade(input_dir, output_dir):
 
         # Cascade face detection
         classifier = cv2.CascadeClassifier(XML_FILENAME)
-        faces = classifier.detectMultiScale(img_g, scaleFactor=1.2,
-            minNeighbors=5, minSize=(30, 30), flags=cv2.CASCADE_SCALE_IMAGE)
+        faces = classifier.detectMultiScale(img_g, scaleFactor=1.3,
+            minNeighbors=5, minSize=(30, 30))
 
-        # Draw a box around each face
         for (x, y, w, h) in faces:
-            cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), thickness=2)
+            # Get SIFT descriptors
+            kps, des = sift.detectAndCompute(img, None)
+            # Predict female or male
+            result = model.predict(des)
+            f_count = np.count_nonzero(result == -1)
+            m_count = np.count_nonzero(result == 1)
+            # print(f_count, m_count)
+            if f_count > m_count:
+                text = F_TEXT
+                color = F_COLOR
+            elif m_count < f_count:
+                text = M_TEXT
+                color = M_COLOR
+            else:
+                text = "Not sure"
+                color = (0, 255, 0)
+            cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
+            cv2.putText(img, text, (x, y-10), color=color,
+                fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
+
         cv2.imwrite(os.path.join(output_dir, filename), img)
