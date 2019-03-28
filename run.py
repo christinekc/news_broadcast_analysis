@@ -12,12 +12,13 @@ def train(**kwargs):
     train_model(**kwargs)
 
 @main.command()
+@click.option("--model_path", "-m", type=Path, default="svm_model.sav")
 def predict(**kwargs):
     from train import predict_model
     predict_model(**kwargs)
 
 @main.command()
-@click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
+@click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
 @click.option("--output_dir", "-o", type=Path, default="output/clip_1_face/")
 @click.option("--model_path", "-m", type=Path, default="svm_model.sav")
 def face_detection(**kwargs):
@@ -26,7 +27,7 @@ def face_detection(**kwargs):
     face_detection_cascade(**kwargs)
 
 @main.command()
-@click.option("--input_dir", "-d", type=Path, default="original_data/clip_1/")
+@click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
 @click.option("--logo_path", "-d", type=Path, default="data/logo1.png")
 def detect_logo(**kwargs):
     from detect import detect_logo
@@ -37,7 +38,7 @@ def pipeline(**kwargs):
     pass
 
 @main.command()
-@click.option("--imgs_dir", "-d", default="original_data/clip_1/", type=Path)
+@click.option("--imgs_dir", "-i", default="original_data/clip_1/", type=Path)
 @click.option("--vid_name", "-v", default="clip_1")
 @click.option("--fps", "-fps", default=6, type=int, help="Frame per second")
 def make_video(**kwargs):

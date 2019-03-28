@@ -150,16 +150,15 @@ def get_features(input_dir):
     """
     Get keypoints and descriptors of the images in input_dir with SIFT.
     """
-    kps = None
-    des = None
+    kps, des = None, None
     sift = cv2.xfeatures2d.SIFT_create()
+
     for filename in os.listdir(input_dir):
         if not filename.endswith(".png"):
             continue
         img = io.imread(input_dir + filename)
         kp, d = sift.detectAndCompute(img, None)
-        # kps.append(kp)
-        # des.append(d)
+
         if des is None:
             kps = kp
             des = d
@@ -199,12 +198,11 @@ def train_model(model_path):
     pickle.dump(model, open(model_path, "wb"))
     print("Model saved as " + model_path)
 
-def predict_model():
+def predict_model(model_path):
     F_TEST_DIR = "data/female_test/"
     M_TEST_DIR = "data/male_test/"
-    MODEL_NAME = "svm_model.sav"
 
-    model = pickle.load(open(MODEL_NAME, "rb"))
+    model = pickle.load(open(model_path, "rb"))
 
     f_test_kps, f_test_des = get_features(F_TEST_DIR)
     m_test_kps, m_test_des = get_features(M_TEST_DIR)
@@ -247,8 +245,10 @@ def face_detection_cascade(input_dir, output_dir, model_path):
     XML_FILENAME = "cascade.xml"
     F_TEXT = "Female"
     M_TEXT = "Male"
+    O_TEXT = "Not sure"
     F_COLOR = (0, 0, 255)
     M_COLOR = (255, 0, 0)
+    O_COLOR = (0, 255, 0)
 
     model = pickle.load(open(model_path, "rb"))
     sift = cv2.xfeatures2d.SIFT_create()
@@ -261,6 +261,7 @@ def face_detection_cascade(input_dir, output_dir, model_path):
             continue
         img = cv2.imread(os.path.join(input_dir, filename))
         img_g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_sk = io.imread(os.path.join(input_dir, filename))
 
         # Cascade face detection
         classifier = cv2.CascadeClassifier(XML_FILENAME)
@@ -269,21 +270,21 @@ def face_detection_cascade(input_dir, output_dir, model_path):
 
         for (x, y, w, h) in faces:
             # Get SIFT descriptors
-            kps, des = sift.detectAndCompute(img, None)
+            kps, des = sift.detectAndCompute(img_sk[y:y+h, x:x+w], None)
             # Predict female or male
             result = model.predict(des)
             f_count = np.count_nonzero(result == -1)
             m_count = np.count_nonzero(result == 1)
-            # print(f_count, m_count)
+            # Plot color box
             if f_count > m_count:
-                text = F_TEXT
+                text = F_TEXT + ": " + format(f_count/(f_count + m_count)*100, ".2f") + "%"
                 color = F_COLOR
-            elif m_count < f_count:
-                text = M_TEXT
+            elif m_count > f_count:
+                text = M_TEXT + ": " + format(m_count/(f_count + m_count)*100, ".2f") + "%"
                 color = M_COLOR
             else:
-                text = "Not sure"
-                color = (0, 255, 0)
+                text = O_TEXT
+                color = O_COLOR
             cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
             cv2.putText(img, text, (x, y-10), color=color,
                 fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
