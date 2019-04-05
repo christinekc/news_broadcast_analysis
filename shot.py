@@ -17,12 +17,14 @@ def shot_detection(input_dir):
         # Default type is numpy.uint64
         curr_img = cv2.imread(os.path.join(input_dir, img_names[i])).astype(np.int64)
         if i == 0:
+            r, c, d = curr_img.shape
             prev_img = curr_img
             continue
         score = np.sum(np.abs(curr_img - prev_img))
         scores.append(score)
         prev_img = curr_img
 
+    scores = np.array(scores) / (r * c * d)
     x = np.arange(start_idx+1, end_idx+1)
     print(len(x), len(scores))
     f = plt.figure()
@@ -33,5 +35,5 @@ def shot_detection(input_dir):
     plt.ylabel("Score")
     plt.plot(x, scores)
     plt.grid()
-    f.savefig(input_dir.name + "_score.png")
+    f.savefig("output/" + input_dir.name + "_score.png")
     plt.show()
