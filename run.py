@@ -35,6 +35,7 @@ def logo_detection(**kwargs):
 
 @main.command()
 @click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
+@click.option("--type", "-t", default="HD")
 def shot_detection(**kwargs):
     from shot import shot_detection
     shot_detection(**kwargs)
