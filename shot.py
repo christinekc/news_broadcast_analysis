@@ -12,14 +12,14 @@ def shot_detection(input_dir):
     start_idx = int(img_names[0][:img_names[0].find(".jpg")])
     end_idx = int(img_names[-1][:img_names[-1].find(".jpg")])
 
+    # Sum of absolute differences
     for i in range(len(img_names)):
-        curr_img = cv2.imread(os.path.join(input_dir, img_names[i]))
-
+        # Default type is numpy.uint64
+        curr_img = cv2.imread(os.path.join(input_dir, img_names[i])).astype(np.int64)
         if i == 0:
             prev_img = curr_img
             continue
-
-        score = np.sum(curr_img - prev_img)
+        score = np.sum(np.abs(curr_img - prev_img))
         scores.append(score)
         prev_img = curr_img
 
@@ -34,3 +34,4 @@ def shot_detection(input_dir):
     plt.plot(x, scores)
     plt.grid()
     f.savefig(input_dir.name + "_score.png")
+    plt.show()
