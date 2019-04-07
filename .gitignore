@@ -4,3 +4,17 @@ original_data/clip_3/
 __pycache__/
 data/
 output/
+
+# latex
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
