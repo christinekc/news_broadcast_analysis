@@ -7,7 +7,7 @@ def main():
 
 @main.command()
 @click.option("--model_path", "-m", type=Path, default="cnn_model.h5")
-@click.option("--type", "-t", default="CNN", help="SVM or CNN")
+@click.option("--classification", "-c", default="CNN", help="SVM or CNN")
 def train(**kwargs):
     from face import train_model
     train_model(**kwargs)
@@ -21,7 +21,9 @@ def predict(**kwargs):
 @main.command()
 @click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
 @click.option("--output_dir", "-o", type=Path, default="output/clip_1_face/")
-@click.option("--model_path", "-m", type=Path, default="svm_model.sav")
+# @click.option("--model_path", "-m", type=Path, default="svm_model.sav")
+@click.option("--model_path", "-m", type=Path, default="cnn_model.h5")
+@click.option("--classification", "-t", default="CNN", help="SVM or CNN")
 def face_detection(**kwargs):
     from face import face_detection_hsv, face_detection_cascade
     # face_detection_hsv(**kwargs)

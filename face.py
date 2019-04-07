@@ -1,8 +1,4 @@
 import cv2
-import keras
-from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
-from keras.models import Sequential
-from keras.optimizers import SGD
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -213,7 +209,7 @@ def get_data(f_dir, m_dir):
     x, y = np.array(x)[idx], np.array(y)[idx]
     return x, y
 
-def train_model(model_path, type):
+def train_model(model_path, classification):
     OLD_F_DIR = "original_data/female/"
     OLD_M_DIR = "original_data/male/"
     F_TRAIN_DIR = "data/female_train/"
@@ -230,7 +226,7 @@ def train_model(model_path, type):
         crop_images(OLD_F_DIR, F_TRAIN_DIR)
         crop_images(OLD_M_DIR, M_TRAIN_DIR)
 
-    if type == "SVM":
+    if classification == "SVM":
         f_train_kps, f_train_des = get_features(F_TRAIN_DIR)
         m_train_kps, m_train_des = get_features(M_TRAIN_DIR)
         x_train = np.concatenate([f_train_des, m_train_des], axis=0)
@@ -244,7 +240,12 @@ def train_model(model_path, type):
         pickle.dump(model, open(model_path, "wb"))
         print("Model saved as " + model_path)
 
-    elif type == "CNN":
+    elif classification == "CNN":
+        import keras
+        from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
+        from keras.models import Sequential
+        from keras.optimizers import SGD
+
         np.random.seed(123)
         size = 72
 
@@ -284,7 +285,7 @@ def train_model(model_path, type):
         model.save(model_path)
 
     else:
-        raise ValueError("Illegal type value")
+        raise ValueError("Illegal classification value")
 
 def predict_model(model_path):
     print("predict_model")
@@ -329,8 +330,18 @@ def face_detection_hsv(input_dir, output_dir):
         new_img = cv2.bitwise_and(img, img, mask=mask)
         cv2.imwrite(os.path.join(output_dir, filename), new_img)
 
-def face_detection_cascade(input_dir, output_dir, model_path):
+def face_detection_cascade(input_dir, output_dir, model_path, classification):
     print("face_detection_cascade")
+    if classification == "SVM":
+        model = pickle.load(open(model_path, "rb"))
+        sift = cv2.xfeatures2d.SIFT_create()
+    elif classification == "CNN":
+        from keras.models import load_model
+        model = load_model(model_path)
+        size = 72
+    else:
+        raise ValueError("Illegal classification value")
+
     XML_FILENAME = "haarcascade_frontalface_default.xml"
     F_TEXT = "Female"
     M_TEXT = "Male"
@@ -338,9 +349,6 @@ def face_detection_cascade(input_dir, output_dir, model_path):
     F_COLOR = (0, 0, 255)
     M_COLOR = (255, 0, 0)
     O_COLOR = (0, 255, 0)
-
-    model = pickle.load(open(model_path, "rb"))
-    sift = cv2.xfeatures2d.SIFT_create()
 
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
@@ -356,25 +364,48 @@ def face_detection_cascade(input_dir, output_dir, model_path):
         faces = face_cascade.detectMultiScale(img_g, scaleFactor=1.3,
             minNeighbors=5, minSize=(30, 30))
 
-        for (x, y, w, h) in faces:
-            # # Get SIFT descriptors
-            kps, des = sift.detectAndCompute(img[y:y+h, x:x+w], None)
-            # Predict female or male
-            result = model.predict(des)
-            f_count = np.count_nonzero(result == -1)
-            m_count = np.count_nonzero(result == 1)
-            # Plot color box
-            if f_count > m_count:
-                text = F_TEXT + ": " + format(f_count/(f_count + m_count)*100, ".2f") + "%"
-                color = F_COLOR
-            elif m_count > f_count:
-                text = M_TEXT + ": " + format(m_count/(f_count + m_count)*100, ".2f") + "%"
-                color = M_COLOR
-            else:
-                text = O_TEXT
-                color = O_COLOR
-            cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
-            cv2.putText(img, text, (x, y-10), color=color,
-                fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
+        if classification == "SVM":
+            model = pickle.load(open(model_path, "rb"))
+            sift = cv2.xfeatures2d.SIFT_create()
+            for (x, y, w, h) in faces:
+                # Get SIFT descriptors
+                kps, des = sift.detectAndCompute(img[y:y+h, x:x+w], None)
+                # Predict female or male
+                result = model.predict(des)
+                f_count = np.count_nonzero(result == -1)
+                m_count = np.count_nonzero(result == 1)
+                # Plot color box
+                if f_count > m_count:
+                    text = F_TEXT + ": " + format(f_count/(f_count + m_count)*100, ".2f") + "%"
+                    color = F_COLOR
+                elif m_count > f_count:
+                    text = M_TEXT + ": " + format(m_count/(f_count + m_count)*100, ".2f") + "%"
+                    color = M_COLOR
+                else:
+                    text = O_TEXT
+                    color = O_COLOR
+                cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
+                cv2.putText(img, text, (x, y-10), color=color,
+                    fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
+
+        elif classification == "CNN":
+            for (x, y, w, h) in faces:
+                assert w == h
+                face = img[y:y+h, x:x+w]
+                face = cv2.resize(face, (size, size))
+                prediction = model.predict_classes(np.array([face]), verbose=0)
+                # print(prediction)
+                if prediction == -1:
+                    text = F_TEXT
+                    color = F_COLOR
+                elif prediction == 1:
+                    text = M_TEXT
+                    color = M_COLOR
+                else:
+                    text = O_TEXT
+                    color = O_COLOR
+                cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
+                cv2.putText(img, text, (x, y-10), color=color,
+                    fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
 
         cv2.imwrite(os.path.join(output_dir, filename), img)
