@@ -28,7 +28,8 @@ def face_detection(**kwargs):
 
 @main.command()
 @click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
-@click.option("--logo_path", "-d", type=Path, default="data/logo2.png")
+@click.option("--output_dir", "-o", type=Path, default="output/clip_1_logo/")
+@click.option("--logo_path", "-d", type=Path, default="data/logo.png")
 def logo_detection(**kwargs):
     from logo import logo_detection
     logo_detection(**kwargs)
