@@ -276,7 +276,7 @@ def train_model(model_path, classification):
         model.add(Dense(2, activation="softmax"))
 
         sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-        model.compile(loss="categorical_crossentropy", optimizer=sgd)
+        model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
 
         model.fit(x_train, y_train, epochs=3)
         score = model.evaluate(x_test, y_test)
@@ -324,9 +324,6 @@ def face_detection_hsv(input_dir, output_dir):
         mask = cv2.bitwise_or(mask1, mask2)
 
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
-        # mask = cv2.erode(mask, kernel, iterations=2)
-        # mask = cv2.dilate(mask, kernel, iterations=2)
-        # mask = cv2.GaussianBlur(mask, (3, 3), 0)
         new_img = cv2.bitwise_and(img, img, mask=mask)
         cv2.imwrite(os.path.join(output_dir, filename), new_img)
 
@@ -394,12 +391,11 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
                 face = img[y:y+h, x:x+w]
                 face = cv2.resize(face, (size, size))
                 prediction = model.predict_classes(np.array([face]), verbose=0)
-                # print(prediction)
                 if prediction == -1:
-                    text = F_TEXT
+                    text = F_TEXT + ": " + format(prediction[0]*100, ".2f") + "%"
                     color = F_COLOR
                 elif prediction == 1:
-                    text = M_TEXT
+                    text = M_TEXT + ": " + format(prediction[0]*100, ".2f") + "%"
                     color = M_COLOR
                 else:
                     text = O_TEXT
