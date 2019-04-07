@@ -133,42 +133,6 @@ def resize_images(input_dir, output_dir, size=72):
         resized_img = cv2.resize(padded_img, (size, size))
         scipy.misc.imsave(output_dir + filename, cv2.cvtColor(resized_img, cv2.COLOR_BGR2RGB))
 
-def warp_face(input_dir, output_dir):
-    """
-    Warp images so faces are front facing.
-    """
-    if not os.path.isdir(output_dir):
-        os.mkdir(output_dir)
-    for filename in os.listdir(input_dir):
-        if not filename.endswith(".jpg"):
-            continue
-        print(filename)
-        img = io.imread(os.path.join(input_dir, filename))
-        index = filename.find(".jpg")
-        name = filename[:index]
-        # Feature coordiantes
-        coords = scipy.io.loadmat(os.path.join(input_dir, name + ".mat"))
-
-        x = coords["x"].reshape(-1)
-        y = coords["y"].reshape(-1)
-        # New feature coordinates
-        x2 = [104, 153, 126, 125]
-        y2 = [114, 114, 141, 162]
-
-        # Compute homography
-        src = np.vstack((x, y)).T
-        dst = np.vstack((x2, y2)).T
-        H = tf.estimate_transform("projective", src, dst)
-        warped = tf.warp(img, inverse_map=H.inverse)
-
-        f = plt.figure()
-        f.add_subplot(1,2, 1)
-        plt.imshow(img)
-        f.add_subplot(1,2, 2)
-        plt.imshow(warped)
-        plt.plot(x2, y2, "r")
-        plt.show()
-
 def get_features(input_dir):
     """
     Get keypoints and descriptors of the images in input_dir with SIFT.
