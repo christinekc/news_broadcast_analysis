@@ -31,7 +31,7 @@ def shot_detection(input_dir, type):
         x = np.arange(start_idx, end_idx + 1)
         scores = np.array(scores) / (r * c * d)
         title = "Sum of absolute differences"
-        new_filename = "_score_sad2.png"
+        new_filename = "output/" + input_dir.name + "_score_sad2.png"
 
     elif type == "SAD":
         prev_img = None
@@ -48,7 +48,7 @@ def shot_detection(input_dir, type):
         x = np.arange(start_idx + 1, end_idx + 1)
         scores = np.array(scores) / (r * c * d)
         title = "Sum of absolute differences"
-        new_filename = "_score_sad2.png"
+        new_filename = "output/" + input_dir.name + "_score_sad2.png"
 
     # Histogram differences
     elif type == "HD":
@@ -70,7 +70,7 @@ def shot_detection(input_dir, type):
         x = np.arange(start_idx + 1, end_idx + 1)
         scores = np.array(scores) / (r * c)
         title = "Histogram differences"
-        new_filename = "_score_hd.png"
+        new_filename = "output/" + input_dir.name + "_score_hd.png"
 
     else:
         raise ValueError("Illegal type value")
@@ -84,5 +84,5 @@ def shot_detection(input_dir, type):
     plt.ylabel("Score")
     plt.plot(x, scores)
     plt.grid()
-    f.savefig("output/" + input_dir.name + new_filename)
-    plt.show()
+    f.savefig(new_filename)
+    print("Output saved to " + new_filename)
