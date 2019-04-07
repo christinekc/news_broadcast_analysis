@@ -6,7 +6,8 @@ def main():
     pass
 
 @main.command()
-@click.option("--model_path", "-m", type=Path, default="svm_model.sav")
+@click.option("--model_path", "-m", type=Path, default="cnn_model.h5")
+@click.option("--type", "-t", default="CNN", help="SVM or CNN")
 def train(**kwargs):
     from face import train_model
     train_model(**kwargs)
@@ -36,7 +37,7 @@ def logo_detection(**kwargs):
 
 @main.command()
 @click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
-@click.option("--type", "-t", default="HD")
+@click.option("--type", "-t", default="HD", help="SAD2 or HD")
 def shot_detection(**kwargs):
     from shot import shot_detection
     shot_detection(**kwargs)

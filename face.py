@@ -1,4 +1,8 @@
 import cv2
+import keras
+from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
+from keras.models import Sequential
+from keras.optimizers import SGD
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -110,6 +114,29 @@ def crop_images(old_dir, new_dir):
         # Save cropped image
         scipy.misc.imsave(new_dir + name + ".png", face)
 
+def resize_images(input_dir, output_dir, size=72):
+    """
+    Resize images in input_dir to size x size.
+    """
+    print("resize_images")
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
+    for filename in os.listdir(input_dir):
+        if not filename.endswith(".png"):
+            continue
+        img = cv2.imread(os.path.join(input_dir, filename))
+        x, y, d = img.shape
+        # Pad image to square
+        if x > y:
+            padded_img = np.pad(img, ((0, 0), (0, x - y), (0, 0)),
+                mode="constant", constant_values=0)
+        else:
+            padded_img = np.pad(img, ((0, y - x), (0, 0), (0, 0)),
+                mode="constant", constant_values=0)
+        resized_img = cv2.resize(padded_img, (size, size))
+        scipy.misc.imsave(output_dir + filename, cv2.cvtColor(resized_img, cv2.COLOR_BGR2RGB))
+
 def warp_face(input_dir, output_dir):
     """
     Warp images so faces are front facing.
@@ -167,38 +194,100 @@ def get_features(input_dir):
             des = np.concatenate([des, d], axis=0)
     return kps, des
 
-def train_model(model_path):
+def get_data(f_dir, m_dir):
+    x = []
+    y = [-1] * len(os.listdir(f_dir)) + [1] * len(os.listdir(m_dir))
+    imgs = os.listdir(f_dir) + os.listdir(m_dir)
+    for filename in os.listdir(f_dir):
+        if not filename.endswith(".png"):
+            continue
+        x.append(cv2.imread(os.path.join(f_dir, filename)))
+    for filename in os.listdir(m_dir):
+        if not filename.endswith(".png"):
+            continue
+        x.append(cv2.imread(os.path.join(m_dir, filename)))
+
+    # Shuffle
+    assert len(x) == len(y)
+    idx = np.random.permutation(len(x))
+    x, y = np.array(x)[idx], np.array(y)[idx]
+    return x, y
+
+def train_model(model_path, type):
     OLD_F_DIR = "original_data/female/"
     OLD_M_DIR = "original_data/male/"
     F_TRAIN_DIR = "data/female_train/"
     M_TRAIN_DIR = "data/male_train/"
+    F_TEST_DIR = "data/female_test/"
+    M_TEST_DIR = "data/male_test/"
+    F_TRAIN_CNN_DIR = "data/female_cnn_train/"
+    M_TRAIN_CNN_DIR = "data/male_cnn_train/"
+    F_TEST_CNN_DIR = "data/female_cnn_test/"
+    M_TEST_CNN_DIR = "data/male_cnn_test/"
 
     if not os.path.isdir("data/"):
         os.mkdir("data/")
         crop_images(OLD_F_DIR, F_TRAIN_DIR)
         crop_images(OLD_M_DIR, M_TRAIN_DIR)
 
-    f_train_kps, f_train_des = get_features(F_TRAIN_DIR)
-    m_train_kps, m_train_des = get_features(M_TRAIN_DIR)
-    x_train = np.concatenate([f_train_des, m_train_des], axis=0)
-    y_train = [-1] * len(f_train_des) + [1] * len(m_train_des)
+    if type == "SVM":
+        f_train_kps, f_train_des = get_features(F_TRAIN_DIR)
+        m_train_kps, m_train_des = get_features(M_TRAIN_DIR)
+        x_train = np.concatenate([f_train_des, m_train_des], axis=0)
+        y_train = [-1] * len(f_train_des) + [1] * len(m_train_des)
 
-    # model = svm.LinearSVC(C=1.0) # 0.4947
-    # model = svm.LinearSVC(C=10.0) # 0.5370
-    # model = svm.LinearSVC(C=50.0) # 0.5200
-    # model = svm.LinearSVC(C=100.0) # 0.5137
-    # model = svm.SVC(kernel="rbf", C=1.0) # 0.4691
-    # model = svm.SVC(kernel="rbf", gamma="scale", C=1.0) # 0.6106
-    model = svm.SVC(kernel="rbf", gamma="scale", C=10.0) # 0.6221
-    # model = svm.SVC(kernel="rbf", gamma="scale", C=100.0) # 0.61195
-    print("Start training")
-    model.fit(x_train, y_train)
+        model = svm.SVC(kernel="rbf", gamma="scale", C=10.0)
+        print("Start training")
+        model.fit(x_train, y_train)
 
-    # Save model
-    pickle.dump(model, open(model_path, "wb"))
-    print("Model saved as " + model_path)
+        # Save model
+        pickle.dump(model, open(model_path, "wb"))
+        print("Model saved as " + model_path)
+
+    elif type == "CNN":
+        np.random.seed(123)
+        size = 72
+
+        # resize_images(F_TRAIN_DIR, F_TRAIN_CNN_DIR, size)
+        # resize_images(M_TRAIN_DIR, M_TRAIN_CNN_DIR, size)
+        # resize_images(F_TEST_DIR, F_TEST_CNN_DIR, size)
+        # resize_images(M_TEST_DIR, M_TEST_CNN_DIR, size)
+
+        x_train, y_train = get_data(F_TRAIN_CNN_DIR, M_TRAIN_CNN_DIR)
+        y_train = keras.utils.to_categorical(y_train, num_classes=2)
+        x_test, y_test = get_data(F_TEST_CNN_DIR, M_TEST_CNN_DIR)
+        y_test = keras.utils.to_categorical(y_test, num_classes=2)
+
+        model = Sequential()
+        model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(size, size, 3)))
+        model.add(Conv2D(32, (3, 3), activation="relu"))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
+
+        model.add(Conv2D(64, (3, 3), activation="relu"))
+        model.add(Conv2D(64, (3, 3), activation="relu"))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
+
+        model.add(Flatten())
+        model.add(Dense(256, activation="relu"))
+        model.add(Dropout(0.5))
+        model.add(Dense(2, activation="softmax"))
+
+        sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+        model.compile(loss="categorical_crossentropy", optimizer=sgd)
+
+        model.fit(x_train, y_train, epochs=3)
+        score = model.evaluate(x_test, y_test)
+        print(score)
+
+        model.save(model_path)
+
+    else:
+        raise ValueError("Illegal type value")
 
 def predict_model(model_path):
+    print("predict_model")
     F_TEST_DIR = "data/female_test/"
     M_TEST_DIR = "data/male_test/"
 
