@@ -4,6 +4,7 @@ original_data/clip_3/
 __pycache__/
 data/
 output/
+report/_minted-report/
 
 # latex
 *.aux
