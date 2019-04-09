@@ -209,6 +209,7 @@ def train_model(model_path, classification):
         from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
         from keras.models import Sequential
         from keras.optimizers import SGD
+        from keras.utils import plot_model
 
         np.random.seed(123)
         size = 72
@@ -247,6 +248,7 @@ def train_model(model_path, classification):
         print(score)
 
         model.save(model_path)
+        plot_model(model, to_file="output/cnn_model.png", show_shapes=True)
 
     else:
         raise ValueError("Illegal classification value")
