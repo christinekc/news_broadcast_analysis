@@ -30,9 +30,21 @@ def face_detection(**kwargs):
     face_detection_cascade(**kwargs)
 
 @main.command()
-@click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
-@click.option("--output_dir", "-o", type=Path, default="output/clip_1_logo/")
-@click.option("--logo_path", "-d", type=Path, default="data/logo.png")
+# Clip 1
+# @click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
+# @click.option("--output_dir", "-o", type=Path, default="output/clip_1_logo/")
+# @click.option("--logo_path", "-d", type=Path, default="data/clip_1_logo2.png")
+# @click.option("--min_threshold", "-t", type=float, default=0.87)
+# Clip 2
+# @click.option("--input_dir", "-i", type=Path, default="original_data/clip_2/")
+# @click.option("--output_dir", "-o", type=Path, default="output/clip_2/")
+# @click.option("--logo_path", "-d", type=Path, default="data/clip_2_logo.png")
+# @click.option("--min_threshold", "-t", type=float, default=0.82)
+# Clip 3
+@click.option("--input_dir", "-i", type=Path, default="original_data/clip_3/")
+@click.option("--output_dir", "-o", type=Path, default="output/clip_3/")
+@click.option("--logo_path", "-d", type=Path, default="data/clip_3_logo.png")
+@click.option("--min_threshold", "-t", type=float, default=0.82)
 def logo_detection(**kwargs):
     from logo import logo_detection
     logo_detection(**kwargs)
