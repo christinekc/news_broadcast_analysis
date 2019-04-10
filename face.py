@@ -241,7 +241,7 @@ def train_model(model_path, classification):
         model.add(Dense(2, activation="softmax"))
 
         sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-        model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
+        model.compile(loss="binary_crossentropy", optimizer=sgd, metrics=["accuracy"])
 
         model.fit(x_train, y_train, epochs=3)
         score = model.evaluate(x_test, y_test)
