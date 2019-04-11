@@ -1,3 +1,4 @@
+import copy
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -384,11 +385,9 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
 
     if classification == "SVM":
         model = pickle.load(open(model_path, "rb"))
-        sift = cv2.xfeatures2d.SIFT_create()
     elif classification == "NN_SIFT":
         from keras.models import load_model
         model = load_model(model_path)
-        sift = cv2.xfeatures2d.SIFT_create()
     elif classification == "CNN":
         from keras.models import load_model
         model = load_model(model_path)
@@ -399,79 +398,120 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
-    for filename in os.listdir(input_dir):
-        if not filename.endswith(".jpg"):
-            continue
+    img_names = [img for img in os.listdir(input_dir) if img.endswith(".jpg")]
+    # Sort images by name in ascending order
+    img_names.sort(key=lambda img: int("".join(filter(str.isdigit, img))))
+    sift = cv2.xfeatures2d.SIFT_create()
+    index_params = dict(algorithm=0, trees=5)
+    flann = cv2.FlannBasedMatcher(index_params, None)
+    face_count = 0
+    prev_faces = {}
+
+    for filename in img_names:
         img = cv2.imread(os.path.join(input_dir, filename))
         img_g = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        # Cascade face detection
+        ##############################
+        ### Cascade face detection ###
+        ##############################
         face_cascade = cv2.CascadeClassifier(XML_FILENAME)
         faces = face_cascade.detectMultiScale(img_g, scaleFactor=1.3,
             minNeighbors=5, minSize=(30, 30))
+        curr_faces = {}
 
-        if classification == "SVM":
-            model = pickle.load(open(model_path, "rb"))
-            sift = cv2.xfeatures2d.SIFT_create()
-            for (x, y, w, h) in faces:
+        for x, y, w, h in faces:
+            #####################
+            ### Face tracking ###
+            #####################
+            face = img[y:y+h, x:x+w]
+            kp1, des1 = sift.detectAndCompute(face, None)
+            found_face = False
+            for (x2, y2, w2, h2), index in prev_faces.items():
+                face2 = img[y2:y2+h, x2:x2+w]
+                kp2, des2 = sift.detectAndCompute(face2, None)
+                if len(kp1) < 2 or len(kp2) < 2:
+                    continue
+                matches = flann.knnMatch(des1, des2, k=2)
+                good_matches = []
+                for m, n in matches:
+                    if m.distance < 0.6*n.distance:
+                        good_matches.append(m)
+                num_kps = 0
+                if len(kp1) <= len(kp2):
+                    num_kps = len(kp1)
+                else:
+                    num_kps = len(kp2)
+                score = len(good_matches) / num_kps * 100
+                if score > 45:
+                    found_face = True
+                    face_number = index
+                    curr_faces[(x, y, w, h)] = index
+            if not found_face:
+                face_number = face_count
+                curr_faces[(x, y, w, h)] = face_count
+                face_count += 1
+
+            #############################
+            ### Gender classification ###
+            #############################
+            if classification == "SVM":
                 # Get SIFT descriptors
-                kps, des = sift.detectAndCompute(img[y:y+h, x:x+w], None)
+                kps, des = sift.detectAndCompute(face, None)
                 # Predict female or male
                 result = model.predict(des)
                 f_count = np.count_nonzero(result == -1)
                 m_count = np.count_nonzero(result == 1)
                 # Plot color box
                 if f_count > m_count:
-                    text = F_TEXT + ": " + format(f_count/(f_count + m_count)*100, ".2f") + "%"
+                    text = str(face_number) + " " + F_TEXT + ": " +\
+                        format(f_count/(f_count + m_count)*100, ".2f") + "%"
                     color = F_COLOR
                 elif m_count > f_count:
-                    text = M_TEXT + ": " + format(m_count/(f_count + m_count)*100, ".2f") + "%"
+                    text = str(face_number) + " " + M_TEXT + ": " +\
+                        format(m_count/(f_count + m_count)*100, ".2f") + "%"
                     color = M_COLOR
                 else:
-                    text = O_TEXT
+                    text = str(face_number) + " " + O_TEXT
                     color = O_COLOR
-                cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
-                cv2.putText(img, text, (x, y-10), color=color,
-                    fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
 
-        elif classification == "NN_SIFT":
-            for (x, y, w, h) in faces:
+            elif classification == "NN_SIFT":
                 assert w == h
-                face = img[y:y+h, x:x+w]
                 kps, des = sift.detectAndCompute(face, None)
                 prediction = model.predict(des)
                 f_count = np.sum(prediction < 0.5)
                 m_count = np.sum(prediction > 0.5)
                 if f_count > m_count:
-                    text = F_TEXT + ": " + format(f_count/(f_count + m_count)*100, ".2f") + "%"
+                    text = str(face_number) + " " + F_TEXT + ": " +\
+                        format(f_count/(f_count + m_count)*100, ".2f") + "%"
                     color = F_COLOR
                 elif m_count > f_count:
-                    text = M_TEXT + ": " + format(m_count/(f_count + m_count)*100, ".2f") + "%"
+                    text = str(face_number) + " " + M_TEXT + ": " +\
+                        format(m_count/(f_count + m_count)*100, ".2f") + "%"
                     color = M_COLOR
                 else:
-                    text = O_TEXT
+                    text = str(face_number) + " " + O_TEXT
                     color = O_COLOR
-                cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
-                cv2.putText(img, text, (x, y-10), color=color,
-                    fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
 
-        elif classification == "CNN":
-            for (x, y, w, h) in faces:
+            elif classification == "CNN":
                 assert w == h
-                face = img[y:y+h, x:x+w]
                 face = cv2.resize(face, (size, size))
                 prediction = model.predict(np.array([face]), verbose=0)
                 if prediction == -1:
-                    text = F_TEXT + ": " + format(prediction[0]*100, ".2f") + "%"
+                    text = str(face_number) + " " + F_TEXT + ": " +\
+                        format(prediction[0]*100, ".2f") + "%"
                     color = F_COLOR
                 elif prediction == 1:
-                    text = M_TEXT + ": " + format(prediction[0]*100, ".2f") + "%"
+                    text = str(face_number) + " " + M_TEXT + ": " +\
+                        format(prediction[0]*100, ".2f") + "%"
                     color = M_COLOR
                 else:
-                    text = O_TEXT
+                    text = str(face_number) + " " + O_TEXT
                     color = O_COLOR
-                cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
-                cv2.putText(img, text, (x, y-10), color=color,
-                    fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
+            cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
+            cv2.putText(img, text, (x, y-10), color=color,
+                fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
 
+        prev_faces = curr_faces
         cv2.imwrite(os.path.join(output_dir, filename), img)
+        cv2.imshow("img", img)
+        cv2.waitKey(0)
