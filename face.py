@@ -155,8 +155,12 @@ def get_features(input_dir):
     return kps, des
 
 def get_data(f_dir, m_dir):
+    """
+    Get the images of the F and M classes from their respective directories and shuffle.
+    """
+    import keras
     x = []
-    y = [-1] * len(os.listdir(f_dir)) + [1] * len(os.listdir(m_dir))
+    y = [0] * len(os.listdir(f_dir)) + [1] * len(os.listdir(m_dir))
     imgs = os.listdir(f_dir) + os.listdir(m_dir)
     for filename in os.listdir(f_dir):
         if not filename.endswith(".png"):
@@ -171,6 +175,7 @@ def get_data(f_dir, m_dir):
     assert len(x) == len(y)
     idx = np.random.permutation(len(x))
     x, y = np.array(x)[idx], np.array(y)[idx]
+    y = keras.utils.to_categorical(y, num_classes=2)
     return x, y
 
 def train_model(model_path, classification):
@@ -195,20 +200,56 @@ def train_model(model_path, classification):
         m_train_kps, m_train_des = get_features(M_TRAIN_DIR)
         x_train = np.concatenate([f_train_des, m_train_des], axis=0)
         y_train = [-1] * len(f_train_des) + [1] * len(m_train_des)
-
         model = svm.SVC(kernel="rbf", gamma="scale", C=10.0)
         print("Start training")
         model.fit(x_train, y_train)
-
         # Save model
         pickle.dump(model, open(model_path, "wb"))
-        print("Model saved as " + model_path)
+        print("Model saved as " + str(model_path))
+
+    elif classification == "NN_SIFT":
+        import keras
+        from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
+        from keras.models import Sequential
+        from keras.optimizers import Adam, SGD
+        from keras.utils import plot_model
+        from utils import shuffle
+
+        f_train_kps, f_train_des = get_features(F_TRAIN_DIR)
+        m_train_kps, m_train_des = get_features(M_TRAIN_DIR)
+        x_train = np.concatenate([f_train_des, m_train_des], axis=0)
+        y_train = [0] * len(f_train_des) + [1] * len(m_train_des)
+        x_train, y_train = shuffle(x_train, y_train)
+
+        f_test_kps, f_test_des = get_features(F_TEST_DIR)
+        m_test_kps, m_test_des = get_features(M_TEST_DIR)
+        x_test = np.concatenate([f_test_des, m_test_des], axis=0)
+        y_test = [0] * len(f_test_des) + [1] * len(m_test_des)
+        x_test, y_test = shuffle(x_test, y_test)
+
+        model = Sequential()
+
+        model.add(Dense(64, activation='relu', kernel_initializer='random_normal', input_dim=128))
+        model.add(Dense(64, activation='relu', kernel_initializer='random_normal'))
+        model.add(Dense(64, activation='relu', kernel_initializer='random_normal'))
+        model.add(Dense(64, activation='relu', kernel_initializer='random_normal'))
+        model.add(Dense(1, activation='sigmoid', kernel_initializer='random_normal'))
+
+        model.compile(optimizer ='adam',loss='binary_crossentropy', metrics =['accuracy'])
+
+        model.fit(x_train, y_train, batch_size=10, epochs=20)
+        score = model.evaluate(x_test, y_test)
+        print("score:", score)
+
+        model.save(model_path)
+        print("Model saved as " + str(model_path))
+        plot_model(model, to_file="output/nn_model.png", show_shapes=True)
 
     elif classification == "CNN":
         import keras
         from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D
         from keras.models import Sequential
-        from keras.optimizers import SGD
+        from keras.optimizers import Adam, SGD
         from keras.utils import plot_model
 
         np.random.seed(123)
@@ -220,9 +261,7 @@ def train_model(model_path, classification):
         # resize_images(M_TEST_DIR, M_TEST_CNN_DIR, size)
 
         x_train, y_train = get_data(F_TRAIN_CNN_DIR, M_TRAIN_CNN_DIR)
-        y_train = keras.utils.to_categorical(y_train, num_classes=2)
         x_test, y_test = get_data(F_TEST_CNN_DIR, M_TEST_CNN_DIR)
-        y_test = keras.utils.to_categorical(y_test, num_classes=2)
 
         model = Sequential()
         model.add(Conv2D(32, (3, 3), activation="relu", input_shape=(size, size, 3)))
@@ -235,19 +274,25 @@ def train_model(model_path, classification):
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Dropout(0.25))
 
+        model.add(Conv2D(128, (3, 3), activation="relu"))
+        model.add(Conv2D(128, (3, 3), activation="relu"))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Dropout(0.25))
+
         model.add(Flatten())
         model.add(Dense(256, activation="relu"))
         model.add(Dropout(0.5))
         model.add(Dense(2, activation="softmax"))
 
-        sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
-        model.compile(loss="binary_crossentropy", optimizer=sgd, metrics=["accuracy"])
+        adam = Adam(lr=0.001)
+        model.compile(loss="binary_crossentropy", optimizer=adam, metrics=["accuracy"])
 
-        model.fit(x_train, y_train, epochs=3)
+        model.fit(x_train, y_train, epochs=10)
         score = model.evaluate(x_test, y_test)
-        print(score)
+        print("score:", score)
 
         model.save(model_path)
+        print("Model saved as " + str(model_path))
         plot_model(model, to_file="output/cnn_model.png", show_shapes=True)
 
     else:
@@ -258,15 +303,49 @@ def predict_model(model_path):
     F_TEST_DIR = "data/female_test/"
     M_TEST_DIR = "data/male_test/"
 
-    model = pickle.load(open(model_path, "rb"))
+    ext = os.path.splitext(model_path)[1]
+    if ext == ".sav":
+        model = pickle.load(open(model_path, "rb"))
+    elif ext == ".h5":
+        from keras.models import load_model
+        model = load_model(model_path)
+    else:
+        raise ValueError("Not valid model extension")
 
-    f_test_kps, f_test_des = get_features(F_TEST_DIR)
-    m_test_kps, m_test_des = get_features(M_TEST_DIR)
-    x_test = np.concatenate([f_test_des, m_test_des], axis=0)
-    y_test = [-1] * len(f_test_des) + [1] * len(m_test_des)
+    sift = cv2.xfeatures2d.SIFT_create()
 
-    result = model.score(x_test, y_test)
-    print(result)
+    correct = 0
+    for filename in os.listdir(F_TEST_DIR):
+        if not filename.endswith(".png"):
+            continue
+        img = cv2.imread(os.path.join(F_TEST_DIR, filename))
+        kps, des = sift.detectAndCompute(img, None)
+        result = model.predict(des)
+        if ext == ".sav":
+            f_count = np.count_nonzero(result == -1)
+            m_count = np.count_nonzero(result == 1)
+        elif ext == ".h5":
+            f_count = np.sum(result < 0.5)
+            m_count = np.sum(result > 0.5)
+        if f_count > m_count:
+            correct += 1
+
+    for filename in os.listdir(M_TEST_DIR):
+        if not filename.endswith(".png"):
+            continue
+        img = cv2.imread(os.path.join(M_TEST_DIR, filename))
+        kps, des = sift.detectAndCompute(img, None)
+        result = model.predict(des)
+        if ext == ".sav":
+            f_count = np.count_nonzero(result == -1)
+            m_count = np.count_nonzero(result == 1)
+        elif ext == ".h5":
+            f_count = np.sum(result < 0.5)
+            m_count = np.sum(result > 0.5)
+        if m_count > f_count:
+            correct += 1
+    score = correct / (len(os.listdir(F_TEST_DIR)) + len(os.listdir(M_TEST_DIR))) * 100
+    print(str(score) + "% of images are categorized correctly")
 
 def face_detection_hsv(input_dir, output_dir):
     print("face_detection_hsv")
@@ -295,16 +374,6 @@ def face_detection_hsv(input_dir, output_dir):
 
 def face_detection_cascade(input_dir, output_dir, model_path, classification):
     print("face_detection_cascade")
-    if classification == "SVM":
-        model = pickle.load(open(model_path, "rb"))
-        sift = cv2.xfeatures2d.SIFT_create()
-    elif classification == "CNN":
-        from keras.models import load_model
-        model = load_model(model_path)
-        size = 72
-    else:
-        raise ValueError("Illegal classification value")
-
     XML_FILENAME = "haarcascade_frontalface_default.xml"
     F_TEXT = "Female"
     M_TEXT = "Male"
@@ -312,6 +381,20 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
     F_COLOR = (0, 0, 255)
     M_COLOR = (255, 0, 0)
     O_COLOR = (0, 255, 0)
+
+    if classification == "SVM":
+        model = pickle.load(open(model_path, "rb"))
+        sift = cv2.xfeatures2d.SIFT_create()
+    elif classification == "NN_SIFT":
+        from keras.models import load_model
+        model = load_model(model_path)
+        sift = cv2.xfeatures2d.SIFT_create()
+    elif classification == "CNN":
+        from keras.models import load_model
+        model = load_model(model_path)
+        size = 72
+    else:
+        raise ValueError("Illegal classification value")
 
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
@@ -351,12 +434,33 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
                 cv2.putText(img, text, (x, y-10), color=color,
                     fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
 
+        elif classification == "NN_SIFT":
+            for (x, y, w, h) in faces:
+                assert w == h
+                face = img[y:y+h, x:x+w]
+                kps, des = sift.detectAndCompute(face, None)
+                prediction = model.predict(des)
+                f_count = np.sum(prediction < 0.5)
+                m_count = np.sum(prediction > 0.5)
+                if f_count > m_count:
+                    text = F_TEXT + ": " + format(f_count/(f_count + m_count)*100, ".2f") + "%"
+                    color = F_COLOR
+                elif m_count > f_count:
+                    text = M_TEXT + ": " + format(m_count/(f_count + m_count)*100, ".2f") + "%"
+                    color = M_COLOR
+                else:
+                    text = O_TEXT
+                    color = O_COLOR
+                cv2.rectangle(img, (x, y), (x+w, y+h), color, thickness=2)
+                cv2.putText(img, text, (x, y-10), color=color,
+                    fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1)
+
         elif classification == "CNN":
             for (x, y, w, h) in faces:
                 assert w == h
                 face = img[y:y+h, x:x+w]
                 face = cv2.resize(face, (size, size))
-                prediction = model.predict_classes(np.array([face]), verbose=0)
+                prediction = model.predict(np.array([face]), verbose=0)
                 if prediction == -1:
                     text = F_TEXT + ": " + format(prediction[0]*100, ".2f") + "%"
                     color = F_COLOR

@@ -7,23 +7,29 @@ def main():
 
 @main.command()
 @click.option("--model_path", "-m", type=Path, default="cnn_model.h5")
-@click.option("--classification", "-c", default="CNN", help="SVM or CNN")
+# @click.option("--model_path", "-m", type=Path, default="svm_model.sav")
+@click.option("--classification", "-c", default="CNN", help="SVM or NN_SIFT or CNN")
 def train(**kwargs):
     from face import train_model
     train_model(**kwargs)
 
 @main.command()
-@click.option("--model_path", "-m", type=Path, default="svm_model.sav")
+@click.option("--model_path", "-m", type=Path, default="nn_model.h5")
+# @click.option("--model_path", "-m", type=Path, default="svm_model.sav")
 def predict(**kwargs):
     from face import predict_model
     predict_model(**kwargs)
 
 @main.command()
-@click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
-@click.option("--output_dir", "-o", type=Path, default="output/clip_1_face/")
 # @click.option("--model_path", "-m", type=Path, default="svm_model.sav")
-@click.option("--model_path", "-m", type=Path, default="cnn_model.h5")
-@click.option("--classification", "-t", default="CNN", help="SVM or CNN")
+@click.option("--model_path", "-m", type=Path, default="nn_model.h5")
+@click.option("--classification", "-c", default="NN_SIFT", help="SVM or NN_SIFT or CNN")
+# Clip 1
+# @click.option("--input_dir", "-i", type=Path, default="original_data/clip_1/")
+# @click.option("--output_dir", "-o", type=Path, default="output/clip_1_face/")
+# Clip 2
+@click.option("--input_dir", "-i", type=Path, default="original_data/clip_2/")
+@click.option("--output_dir", "-o", type=Path, default="output/clip_2/")
 def face_detection(**kwargs):
     from face import face_detection_hsv, face_detection_cascade
     # face_detection_hsv(**kwargs)
@@ -57,7 +63,7 @@ def shot_detection(**kwargs):
     shot_detection(**kwargs)
 
 @main.command()
-def pipeline(**kwargs):
+def run_all(**kwargs):
     pass
 
 @main.command()

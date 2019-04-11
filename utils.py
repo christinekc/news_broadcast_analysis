@@ -1,5 +1,6 @@
 import cv2
 import os
+import numpy as np
 
 def make_video(imgs_dir, vid_name, fps):
     """
@@ -24,3 +25,14 @@ def make_video(imgs_dir, vid_name, fps):
         vid.write(cv2.imread(os.path.join(imgs_dir, img)))
     vid.release()
     print("Video is now in ", file_path)
+
+def shuffle(x, y):
+    """
+    Shuffle data x and their labels y.
+    """
+    import keras
+    assert len(x) == len(y)
+    idx = np.random.permutation(len(x))
+    x, y = np.array(x)[idx], np.array(y)[idx]
+    # y = keras.utils.to_categorical(y, num_classes=2)
+    return x, y
