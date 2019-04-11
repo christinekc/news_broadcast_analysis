@@ -416,7 +416,7 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
         ##############################
         face_cascade = cv2.CascadeClassifier(XML_FILENAME)
         faces = face_cascade.detectMultiScale(img_g, scaleFactor=1.3,
-            minNeighbors=5, minSize=(30, 30))
+            minNeighbors=3, minSize=(70, 70))
         curr_faces = {}
 
         for x, y, w, h in faces:
@@ -513,5 +513,5 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
 
         prev_faces = curr_faces
         cv2.imwrite(os.path.join(output_dir, filename), img)
-        cv2.imshow("img", img)
-        cv2.waitKey(0)
+        # cv2.imshow("img", img)
+        # cv2.waitKey(0)
