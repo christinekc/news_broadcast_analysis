@@ -14,9 +14,36 @@
 \usepackage{graphicx}
 \usepackage{minted} 
 \usepackage{hyperref}       % hyperlinks
+\usepackage{listings}
+\usepackage{pgffor}
 
 \usepackage{xcolor}
 \definecolor{bg}{rgb}{0.95, 0.95, 0.92}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{10} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{10}  % for normal
+
+\DeclareCaptionFormat{listing}{#1#2#3}
+\captionsetup[lstlisting]{format=listing, singlelinecheck=false, margin=0pt, font={sf}}
+
+\lstset{
+  numberstyle=\ttm,
+  basicstyle=\ttm,
+  numbers=left,
+  columns=fullflexible,
+  frame=top,
+  breaklines=true,
+  showstringspaces=false,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+  keywordstyle=\ttb\color{deepblue},
+  emph={MyClass,__init__},          
+  emphstyle=\ttb\color{deepred},   
+  stringstyle=\color{deepgreen},
+}
+
 
 \title{News broadcast analysis}
 
@@ -36,6 +63,7 @@ This method works quite well with simple videos but it is not robust against mov
 \subsection*{Histogram differences}
 Each frame is converted into a gray-scale image. A histogram with 256 bins, representing all the possible values of a pixel, is created for each frame. Then, a score is assigned by calculating the sum of the absolute differences between histograms of consecutive frames.
 
+\vspace*{20pt}
 \begin{minipage}{0.5\linewidth}
 \captionof{figure}{Sum of absolute differences scores of clip 1} \label{fig: clip_1_sad2}
 \centering
@@ -68,6 +96,7 @@ Each frame is converted into a gray-scale image. A histogram with 256 bins, repr
 \centering
 \includegraphics[width=3.5in]{../output/clip_3_score_hd.png}
 \end{minipage}
+\vspace*{10pt}
 
 The relevant code is in \texttt{shot.py}. To get the graphs of shot detection, run the command below. 
 \begin{minted}[bgcolor=bg]{sh}
@@ -75,15 +104,24 @@ python3 run.py shot_detection -t <type> -i <path to frames>
 \end{minted}
 
 \section{Logo detection}
-Template matching is an object detection algorithm which is translation invariant but not scale or rotation invariant. As we are detecting a logo, it is assumed that the target of detection will be in a known orientation. Also, template matching is run on templates of different sizes because the size of the logo in a frame is unknown. 
+Template matching is an object detection algorithm which is translation invariant but not scale or rotation invariant. As we are detecting a logo, we can assume that the target of detection will be in a known orientation. Due to the possibility that there may be multiple occurrences of the logo in a frame, we cannot simply match SIFT features between the logo template and a frame. Template matching is run on templates of different sizes because the size of the logo in a frame is unknown. Then, a score is calculated for all the matches by normalized cross-correlation. The normalized version is chosen because brighter patches will not have a higher score. Also, the score obtained will be in the range [0, 1] and this makes choosing a threshold more intuitive. As the logo of the template and the one in the frame might be of different, possibly due to different resolutions or styles, a looser threshold is first used to filter out the irrelevant matches. 
 
-Due to the possibility that there may be multiple occurrences of the logo in a frame, we cannot simply match SIFT features between the logo and a frame. 
+For each match, if its score is greater than the loose threshold, it is kept. Then, the algorithm checks if that particular match is a slight translation of a match we have a already decided to keep. If it is, the match is discarded. This prevents having multiple boxes around one logo. Afterwards, SIFT descriptors are calculated for the remaining matches and a score is calculated using feature matching and Lowe's ratio test with the logo template. If a match's score is above a tighter threshold, it is declared as a match of the template and a box is put around the match.
 
-\begin{minipage}{\linewidth}
-\captionof{figure}{Logo detection on clip 1} \label{fig: logo}
+The logo detection was the most difficult part of the project for me. I originally only did one pass with either normalized cross-correlation or SIFT feature matching. However, this led to fairly poor results, with the algorithm often unable to detect multiple logos and including many irrelevant matches. Therefore, the two passes approach, first with a looser threshold using normalized cross-correlation and then a tighter threshold with SIFT feature matching, is used. As can be seen in Figure \ref{fig: logo_good}, the algorithm can detect multiple logos.
+
+\vspace*{20pt}
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Logo detection on frame 104 of clip 1} \label{fig: logo_bad}
+\centering
+\includegraphics[width=2.5in]{../output/clip_1_logo/104.jpg}
+\end{minipage}
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Logo detection on frame 52 of clip 1} \label{fig: logo_good}
 \centering
 \includegraphics[width=2.5in]{../output/clip_1_logo/052.jpg}
 \end{minipage}
+\vspace*{10pt}
 
 The relevant code is in \texttt{logo.py}. To run logo detection, run the command below.
 \begin{minted}[bgcolor=bg]{sh}
@@ -91,7 +129,7 @@ python3 run.py logo_detection -i <input directory> -o <output directory>
 -d <logo path> -t <min threshold>
 \end{minted}
 
-\section{Face detection}
+\section{Face detection and tracking}
 There are 260 images in the female and male classes respectively. Each image is accompanied by a \texttt{.mat} file specifying the coordinates of the left eye, right eye, nose and mouth. The following rules are used to crop the images in order to obtain the faces.
 \begin{equation}
 \begin{split}
@@ -101,10 +139,11 @@ start_y &= eyes_y - (mouth_y - eyes_y) \\
 end_y &= mouth_y + (mouth_y - eyes_y) \\
 \end{split}
 \end{equation}
+The relevant code for face cropping is in \texttt{crop\_images()} in \texttt{face.py}.
 
-\subsection*{Color detection}
-The initial attempt to detect faces is to use skin detection - trying to filter out skin in images. Figure \ref{fig: rgb} and Figure \ref{fig: hsv} show the color distributions of faces in RGB and HSV color spaces. The HSV color space has narrower distributions, especially with hue. Although this method works sometimes as seen in Figure \ref{fig: hsv_good}, it is not successful in general. It fails to detect a large area of the face of the man on the right in Figure \ref{fig: hsv_bad}. Also, this model is especially poor when other things in the frame are very similar to human skin tone.
+The initial attempt to detect faces is to use skin detection - trying to filter out skin in images. Figure \ref{fig: rgb} and Figure \ref{fig: hsv} show the color distributions of faces in RGB and HSV color spaces. The HSV color space has narrower distributions, especially with hue. Although this method works sometimes as seen in Figure \ref{fig: hsv_good}, it is not successful in general. It fails to detect a large area of the face of the man on the right in Figure \ref{fig: hsv_bad} and includs a lot of the background.This model is especially poor when other things in the frame are very similar to human skin tone.
 
+\vspace*{20pt}
 \begin{minipage}{0.5\linewidth}
 \captionof{figure}{RGB distribution of fe male training images} \label{fig: rgb}
 \centering
@@ -117,21 +156,38 @@ The initial attempt to detect faces is to use skin detection - trying to filter 
 \end{minipage}
 
 \begin{minipage}{0.5\linewidth}
-\captionof{figure}{HSV distribution of female training images} \label{fig: hsv_good}
+\captionof{figure}{HSV colour detection on frame 160 of clip 1} \label{fig: hsv_good}
 \centering
 \includegraphics[width=2.5in]{../output/clip_1_hsv/160.jpg}
 \end{minipage}
 \begin{minipage}{0.5\linewidth}
-\captionof{figure}{HSV distribution of female training images} \label{fig: hsv_bad}
+\captionof{figure}{HSV colour detection on frame 50 of clip 1} \label{fig: hsv_bad}
 \centering
 \includegraphics[width=2.5in]{../output/clip_1_hsv/050.jpg}
 \end{minipage}
+\vspace*{10pt}
 
-\subsection*{Classifier}
-I ended up using \texttt{cv2.CascadeClassifier} for detecting faces. It works fairly well. However, it was not able to detect the face in Figure ????? despite trying different parameters.
+The relevant code for HSV face detection is in \texttt{visualize\_distributions()} and \texttt{face\_detection\_hsv()} in \texttt{face.py}.
+
+I ended up using \texttt{cv2.CascadeClassifier} for detecting faces. The full name of this classifier is Haar feature-based cascade classifier for object detection. It is a OpenCV pre-trained classifier for face stored in an XML file. It works fairly well. It has no trouble detecting multiple people in a frame or people of colour, like in Figure \ref{fig: face_good}. However, it is sometimes unable to detect faces in a certain position. The detector was unable to detect the person on the left in any of the frames he appeared in that particular position in Figure \ref{fig: face_bad}.
+
+After obtaining the faces in a frame, for each face in the current frame, the SIFT descriptors are found. Then, they are matched to the SIFT descriptors of each faces in the previous frame using feature matching and Lowe's ratio test. Then, a score is obtained from the number of matches. If the score is above a set threshold, the algorithm declares that the face we are looking at is found in the previous frame and we will display the index assigned to that particular face in the previous frame. If the face is not found, we assign a new index to the face.
+
+\vspace*{10pt}
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Face detection on frame 69 of clip 2} \label{fig: face_good}
+\centering
+\includegraphics[width=2.5in]{../output/clip_2/069.jpg}
+\end{minipage}
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Face detection on frame 110 of clip 1} \label{fig: face_bad}
+\centering
+\includegraphics[width=2.5in]{../output/clip_1_face/110.jpg}
+\end{minipage}
+\vspace*{10pt}
 
 \section{Gender classification}
-90\% of the images were used for training, whereas the other 10\% were used for testing the accuracy of the model.
+90\% of the images (234 images from each class) are used for training, whereas the other 10\% (26 images from each class) are used for testing the accuracy of the model.
 
 \subsection*{SVM}
 The SIFT descriptors of the training images are passed into the SVM model for training.
@@ -144,26 +200,32 @@ The same as SVM, except with a neural network model instead. The model uses a bi
 All the training and testing images are padded with black borders to obtain a square shape and then resized to be 72 pixels by 72 pixels. The training images are then passed to the CNN model shown in Figure \ref{fig: cnn_model} for training. The model uses a binary crossentropy loss, stochastic gradient descent for optimization, and accuracy as the metric.
 Each detected face is padded to obtain a square shape. Then, the image is resized to be 72 pixels by 72 pixels. The resized image is then passed to the trained cnn model and a category prediction is obtained.
 
-\begin{minipage}{\linewidth}
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Neural network model} \label{fig: nn_model}
+\centering
+\includegraphics[width=2.5in]{../output/nn_model.png}
+\end{minipage}
+\begin{minipage}{0.5\linewidth}
 \captionof{figure}{CNN model} \label{fig: cnn_model}
 \centering
 \includegraphics[width=2.5in]{../output/cnn_model.png}
 \end{minipage}
+\vspace*{10pt}
 
-The relevant code is in \texttt{train\_model()} in \texttt{face.py}. To train a gender classification model, run the command below.
+The relevant code for training any of the three models is in \texttt{train\_model()} in \texttt{face.py}. To train a gender classification model, run the command below.
 \begin{minted}[bgcolor=bg]{sh}
 python3 run.py train -m <model path after training> 
 -c <classification model (SVM, NN_SIFT, or CNN)>
 \end{minted}
 
-The relevant code for face detection (including gender classification) is in \texttt{face\_detection()} in \texttt{face.py}. Run the command below.
+The relevant code for face detection (including gender classification and face tracking) is in \texttt{face\_detection()} in \texttt{face.py}. Run the command below.
 \begin{minted}[bgcolor=bg]{sh}
 python3 run.py face_detection -i <input directory> -o <output directory>
 -c <classification model (SVM, NN_SIFT, or CNN)> -m <trained model path> 
 \end{minted}
 
 \subsection*{Performance}
-Table \ref{tab:gender_classification} shows the test accuracies of the three models. As expected, CNN performed poorly, as good as random guesses, due to the very small training data size of 468.
+Table \ref{tab:gender_classification} shows the test accuracies of the three models. As expected, CNN performed poorly, achieving an accuracy that is equivalent to random guesses, due to the very small training data size of 468.
 
 \begin{table}[h]
  \caption{Gender classification performance}
@@ -184,5 +246,15 @@ Table \ref{tab:gender_classification} shows the test accuracies of the three mod
 \href{https://www-nlpir.nist.gov/projects/tvpubs/tvpapers03/ramonlull.paper.pdf}{Video shot boundary detection based on color histogram}
 
 \href{https://en.wikipedia.org/wiki/Shot_transition_detection}{Wikipedia - Shot transition detection}
+
+\newpage
+\section{Code}
+\foreach \file in  {shot, logo, face, utils} {
+   %\begin{figure}[htpb]
+        \lstinputlisting[language=Python, caption=\file.py]{../\file.py}
+        %\caption{Source code for \textsf{\file.py}}
+    % \label{fig:\file}
+   %\end{figure}
+}
 
 \end{document}
