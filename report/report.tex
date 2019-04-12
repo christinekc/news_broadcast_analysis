@@ -15,7 +15,7 @@
 \usepackage{minted} 
 \usepackage{hyperref}       % hyperlinks
 \usepackage{listings}
-\usepackage{pgffor}
+\usepackage{pgffor}			
 
 \usepackage{xcolor}
 \definecolor{bg}{rgb}{0.95, 0.95, 0.92}
@@ -126,7 +126,7 @@ The logo detection was the most difficult part of the project for me. I original
 The relevant code is in \texttt{logo.py}. To run logo detection, run the command below.
 \begin{minted}[bgcolor=bg]{sh}
 python3 run.py logo_detection -i <input directory> -o <output directory>
--d <logo path> -t <min threshold>
+-d <logo path> -t <min threshold for NCC>
 \end{minted}
 
 \section{Face detection and tracking}
@@ -242,6 +242,15 @@ Table \ref{tab:gender_classification} shows the test accuracies of the three mod
   \label{tab:gender_classification}
 \end{table}
 
+\section{Make video}
+The relevant code for combining all the frames to a video is in \texttt{make\_video()} in \texttt{utils.py}. To do logo detection, face detection, face tracking and gender classification and make a video, run the command below.
+\begin{minted}[bgcolor=bg]{sh}
+python3 run.py run_all -i <input directory> -o <output directory>
+-d <logo path> -t <min threshold for NCC> -m <trained model path>
+-c <classification model (SVM, NN_SIFT, or CNN)> -v <name of output video>
+-f <frame per second>
+\end{minted}
+
 \section{References}
 \href{https://www-nlpir.nist.gov/projects/tvpubs/tvpapers03/ramonlull.paper.pdf}{Video shot boundary detection based on color histogram}
 
@@ -249,7 +258,7 @@ Table \ref{tab:gender_classification} shows the test accuracies of the three mod
 
 \newpage
 \section{Code}
-\foreach \file in  {shot, logo, face, utils} {
+\foreach \file in  {shot, logo, face, utils, run} {
    %\begin{figure}[htpb]
         \lstinputlisting[language=Python, caption=\file.py]{../\file.py}
         %\caption{Source code for \textsf{\file.py}}
