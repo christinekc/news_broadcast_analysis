@@ -4,6 +4,10 @@ import numpy as np
 import os
 
 def shot_detection(input_dir, type):
+    """
+    Get graphs of scores of shot changes using the method specify in type.
+    Type should be either SAD2 or HD.
+    """
     scores = []
     img_names = [img for img in os.listdir(input_dir) if img.endswith(".jpg")]
     # Sort images by name in ascending order

@@ -3,9 +3,6 @@ import imutils
 import numpy as np
 import os
 
-import copy
-
-
 # def logo_detection(input_dir, output_dir,logo_path):
 #     print("detect_logo")
 
@@ -68,6 +65,10 @@ import copy
 #         cv2.waitKey(0)
 
 def get_score(img1, img2):
+    """
+    Get similarity score between img1 and img2 using SIFT features matching and
+    Lowe's ratio testing.
+    """
     sift = cv2.xfeatures2d.SIFT_create()
     kp1, des1 = sift.detectAndCompute(img1, None)
     kp2, des2 = sift.detectAndCompute(img2, None)
@@ -109,8 +110,6 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
     ratios = []
     for scale in scales:
         resized = imutils.resize(template_g, width=int(template_g.shape[1] * scale))
-        template_canny = cv2.Canny(resized, 50, 200)
-        # templates.append(template_canny)
         templates.append(resized)
         ratios.append(resized.shape[1] / float(template_g.shape[1]))
 
@@ -130,7 +129,7 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
             if img_g.shape[0] < templates[i].shape[0] or img_g.shape[1] < templates[i].shape[1]:
                 break
 
-            # match = cv2.matchTemplate(img_canny, templates[i], cv2.TM_CCORR_NORMED) # img_g.shape - template_g.shape + 1
+            # First pass - normalized cross correlation
             match = cv2.matchTemplate(img_g, templates[i], cv2.TM_CCORR_NORMED) # img_g.shape - template_g.shape + 1
             if p == -1 and q == -1:
                 p, q = match.shape
@@ -144,20 +143,20 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
         r = ratios[len(ratios) - 1 - r]
         max_val = np.max(matches)
         max_thresh = max(max_val * 0.95, min_threshold)
-        # print("max_val:", max_val, min_threshold, max_val < min_threshold)
+        # If the match with the highest score is smaller than the min threshold,
+        # there is no match in this image and just saves the input image.
         if max_val < min_threshold:
             cv2.imwrite(os.path.join(output_dir, img_name), img)
             continue
         start_x, start_y = max_x, max_y
         end_x, end_y = int((max_x + w * r)), int((max_y + h * r))
         match_score = get_score(template, img[start_y:end_y, start_x:end_x])
-        # if match_score > 0:
-            # print("How good it's the match: ", match_score, img_name)
         if match_score < 5:
             cv2.imwrite(os.path.join(output_dir, img_name), img)
             continue
         boxes.append((r, max_y, max_x, 1))
 
+        # Matches obtained from first pass
         match_locations = np.where(matches >= max_thresh)
         for i in range(len(match_locations[0])):
             r1, y1, x1 = ratios[len(ratios) - 1 - match_locations[0][i]], match_locations[1][i], match_locations[2][i]
@@ -174,19 +173,12 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
                     found = True
                     break
             if not found:
-                # print(r1, y1, x1, matches[match_locations[0][i], match_locations[1][i], match_locations[2][i]])
-
                 start_x, start_y = x1, y1
                 end_x, end_y = int((x1 + w * r1)), int((y1 + h * r1))
-                # cv2.imshow("", img[start_y:end_y, start_x:end_x])
-                # cv2.waitKey(0)
+                # Second pass - SIFT features matching
                 match_score = get_score(template, img[start_y:end_y, start_x:end_x])
-                # if match_score > 0:
-                    # print("How good it's the match: ", match_score, img_name)
                 if match_score > 5:
                     boxes.append((r1, y1, x1, 1))
-
-        # print("boxes:", boxes)
 
         for r, y, x, count in boxes:
             start_x, start_y = x, y

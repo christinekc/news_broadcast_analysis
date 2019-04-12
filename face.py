@@ -86,9 +86,8 @@ def visualize_distributions(imgs_dir):
 
 def crop_images(old_dir, new_dir):
     """
-    Crop .jpg images in old_dir given coordinates of
-    left eye, right eye, nose and mouth in .mat files.
-    Save cropped images in new_dir.
+    Crop .jpg images in old_dir given coordinates of left eye, right eye,
+    nose and mouth in .mat files. Save cropped images in new_dir.
     """
     print("crop_images")
     os.mkdir(new_dir)
@@ -178,6 +177,10 @@ def get_data(f_dir, m_dir):
     return x, y
 
 def train_model(model_path, classification):
+    """
+    Train either a SVM or neural network model using SIFT features or
+    a CNN using face images.
+    """
     OLD_F_DIR = "original_data/female/"
     OLD_M_DIR = "original_data/male/"
     F_TRAIN_DIR = "data/female_train/"
@@ -200,7 +203,7 @@ def train_model(model_path, classification):
         x_train = np.concatenate([f_train_des, m_train_des], axis=0)
         y_train = [-1] * len(f_train_des) + [1] * len(m_train_des)
         model = svm.SVC(kernel="rbf", gamma="scale", C=10.0)
-        print("Start training")
+
         model.fit(x_train, y_train)
         # Save model
         pickle.dump(model, open(model_path, "wb"))
@@ -226,13 +229,11 @@ def train_model(model_path, classification):
         x_test, y_test = shuffle(x_test, y_test)
 
         model = Sequential()
-
         model.add(Dense(64, activation='relu', kernel_initializer='random_normal', input_dim=128))
         model.add(Dense(64, activation='relu', kernel_initializer='random_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='random_normal'))
         model.add(Dense(64, activation='relu', kernel_initializer='random_normal'))
         model.add(Dense(1, activation='sigmoid', kernel_initializer='random_normal'))
-
         model.compile(optimizer ='adam',loss='binary_crossentropy', metrics =['accuracy'])
 
         model.fit(x_train, y_train, batch_size=10, epochs=20)
@@ -253,6 +254,7 @@ def train_model(model_path, classification):
         np.random.seed(123)
         size = 72
 
+        # Pad and resize images to size by size
         # resize_images(F_TRAIN_DIR, F_TRAIN_CNN_DIR, size)
         # resize_images(M_TRAIN_DIR, M_TRAIN_CNN_DIR, size)
         # resize_images(F_TEST_DIR, F_TEST_CNN_DIR, size)
@@ -297,6 +299,9 @@ def train_model(model_path, classification):
         raise ValueError("Illegal classification value")
 
 def predict_model(model_path):
+    """
+    Get accuacy of test set for either the SVM or neural network model.
+    """
     print("predict_model")
     F_TEST_DIR = "data/female_test/"
     M_TEST_DIR = "data/male_test/"
@@ -346,6 +351,9 @@ def predict_model(model_path):
     print(str(score) + "% of images are categorized correctly")
 
 def face_detection_hsv(input_dir, output_dir):
+    """
+    Face detection with HSV color detection (does not work well).
+    """
     print("face_detection_hsv")
 
     if not os.path.isdir(output_dir):
@@ -371,6 +379,10 @@ def face_detection_hsv(input_dir, output_dir):
         cv2.imwrite(os.path.join(output_dir, filename), new_img)
 
 def face_detection_cascade(input_dir, output_dir, model_path, classification):
+    """
+    Face detection with classifier, face tracking, and gender classification
+    using the method specified in classification variable using model_path.
+    """
     print("face_detection_cascade")
     XML_FILENAME = "haarcascade_frontalface_default.xml"
     F_TEXT = "Female"
