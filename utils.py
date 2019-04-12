@@ -9,7 +9,8 @@ def make_video(imgs_dir, vid_name, fps):
     OUTPUT_DIR = "output/"
     if not os.path.isdir(OUTPUT_DIR):
         os.mkdir(OUTPUT_DIR)
-    imgs = [img for img in os.listdir(imgs_dir) if img.endswith(".jpg")]
+    exts = [".jpg", ".png"]
+    imgs = [img for img in os.listdir(imgs_dir) if img.endswith(tuple(exts))]
     # Sort images by name in ascending order
     imgs.sort(key=lambda img: int("".join(filter(str.isdigit, img))))
     frame = cv2.imread(os.path.join(imgs_dir, imgs[0]))
@@ -30,9 +31,7 @@ def shuffle(x, y):
     """
     Shuffle data x and their labels y.
     """
-    import keras
     assert len(x) == len(y)
     idx = np.random.permutation(len(x))
     x, y = np.array(x)[idx], np.array(y)[idx]
-    # y = keras.utils.to_categorical(y, num_classes=2)
     return x, y

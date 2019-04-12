@@ -9,6 +9,7 @@ from skimage import io
 from skimage import transform as tf
 from skimage.color import rgb2hsv
 from sklearn import svm
+from utils import shuffle
 
 def visualize_distributions(imgs_dir):
     """
@@ -172,10 +173,7 @@ def get_data(f_dir, m_dir):
             continue
         x.append(cv2.imread(os.path.join(m_dir, filename)))
 
-    # Shuffle
-    assert len(x) == len(y)
-    idx = np.random.permutation(len(x))
-    x, y = np.array(x)[idx], np.array(y)[idx]
+    x, y = shuffle(x, y)
     y = keras.utils.to_categorical(y, num_classes=2)
     return x, y
 
@@ -214,7 +212,6 @@ def train_model(model_path, classification):
         from keras.models import Sequential
         from keras.optimizers import Adam, SGD
         from keras.utils import plot_model
-        from utils import shuffle
 
         f_train_kps, f_train_des = get_features(F_TRAIN_DIR)
         m_train_kps, m_train_des = get_features(M_TRAIN_DIR)
@@ -398,7 +395,8 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
     if not os.path.isdir(output_dir):
         os.mkdir(output_dir)
 
-    img_names = [img for img in os.listdir(input_dir) if img.endswith(".jpg")]
+    exts = [".jpg", ".png"]
+    img_names = [img for img in os.listdir(input_dir) if img.endswith(tuple(exts))]
     # Sort images by name in ascending order
     img_names.sort(key=lambda img: int("".join(filter(str.isdigit, img))))
     sift = cv2.xfeatures2d.SIFT_create()

@@ -88,7 +88,7 @@ def get_score(img1, img2):
     score = len(good_matches) / num_kps * 100
     return score
 
-def logo_detection(input_dir, output_dir,logo_path, min_threshold):
+def logo_detection(input_dir, output_dir, logo_path, min_threshold):
     print("detect_logo")
 
     if not os.path.isdir(output_dir):
