@@ -6,6 +6,10 @@ import os
 def add_shot_number(input_dir, output_dir, shots):
     """
     """
+    print("add_shot_number")
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
+
     exts = [".jpg", ".png"]
     img_names = [img for img in os.listdir(input_dir) if img.endswith(tuple(exts))]
     # Sort images by name in ascending order
