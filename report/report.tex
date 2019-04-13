@@ -56,16 +56,16 @@
 \maketitle
 
 \section{Shot detection}
-A score is calculated for each frame using either the sum of absolute differences method or the histogram differences method. Given the mean $\mu$ and standard deviation $\sigma$ of all the scores, a threshold is chosen as $\mu + k\times \sigma$, where $k$ is an integer. A shot change is declared when the value of the score becomes greater than the threshold and then becomes smaller than the threshold (similar to a peak above the threshold line).
+A score is calculated for each frame using either the sum of absolute differences method or the histogram differences method. Given the mean $\mu$ and standard deviation $\sigma$ of all the scores, a threshold is chosen as $$\text{threshold} = \mu + k\times \sigma$$ where $k$ is an integer. A shot is a series of frames taken by continuously by one camera. A shot change is declared when the value of the score becomes greater than the threshold and then becomes smaller than the threshold (similar to a peak above the threshold line).
 
 \subsection*{Sum of absolute differences}
 A score is assigned to each frame by calculating the sum of the absolute differences between consecutive frames for every pixel. This value is then normalized by the size of the frame. When the score of a frame is greater than the threshold, a shot change is declared. This method works quite well with simple videos but it is not robust against movements and changes in lighting.
 
 \subsection*{Histogram differences}
-Each frame is converted into a gray-scale image. A histogram with 256 bins, representing all the possible values of a pixel, is created for each frame. Then, a score is assigned by calculating the sum of the absolute differences between histograms of consecutive frames.
+Each frame is converted into a gray-scale image. A histogram with 256 bins, representing all the possible values of a pixel, is created for each frame. Then, a score is assigned by calculating the sum of the absolute differences between histograms of consecutive frames. This method is more robust against small changes in a frame.
 
 \subsection*{Performance}
-Let $C$ be the number of correctly identified cuts, $M$ be the number of cuts that are not identified, and $F$ be the number of falsely identified cuts. To evaluate how well I am detecting the shots, I calculate the recall (V), precision (P) and $F_1$ scores for each clip. They are defined as below.
+Let $C$ be the number of correctly identified cuts, $M$ be the number of cuts that are not identified, and $F$ be the number of falsely identified cuts. To evaluate how well the algorithm is detecting the shots, the recall (V), precision (P) and $F_1$ scores for each clip are calculated. They are defined as below.
 
 \begin{equation}
 \begin{split}
@@ -74,39 +74,8 @@ P &= \frac{C}{C + F} \\
 F_1 &= \frac{2 \times P \times V}{P + V} \\
 \end{split}
 \end{equation}
- 
-Table \ref{tab:sad_results} and Table \ref{tab:hd_results} shows the respective scores for both methods. On average, histogram differences achieve a higher score across all three categories than the sum of absolute differences method. It performs especially better with the montage scene in clip 3, where there are frequent shot changes. 
 
- \begin{table}[h]
- \caption{Shot detection performance with sum of absolute differences}
-  \centering
-  \begin{tabular}{lllllll}
-    \toprule
-    Clip		& Correct (C)	& Missed (M)	& Falsely detected (F) 	& Recall (V) 		& Precision (P) 	& $F_1$ \\
-    \midrule
-    1			& 	1					& 0					& 1 									& 1					& 0.5					& 0.6667 \\
-    2			& 	7					& 0					& 2 									& 1					& 0.7778				& 0.8750 \\
-    3			& 	5					& 16					& 0 									& 0.2381			& 1						& 0.3846	\\
-    \bottomrule
-  \end{tabular}
-  \label{tab:sad_results}
-\end{table}
-
-\begin{table}[h]
- \caption{Shot detection performance with histogram differences}
-  \centering
-  \begin{tabular}{lllllll}
-    \toprule
-    Clip		& Correct (C)	& Missed (M)	& Falsely detected (F) 	& Recall (V) 		& Precision (P) 	& $F_1$ \\
-    \midrule
-    1			& 	1					& 0					& 0 									& 1					& 1						& 1	\\
-    2			& 	6					& 1					& 1 									& 0.8571			& 0.8571				& 0.8571	\\
-    3			& 	15				& 6					& 1 									& 0.7142			& 0.9375				& 0.8118	\\
-    \bottomrule
-  \end{tabular}
-  \label{tab:hd_results}
-\end{table}
-
+\vspace*{10pt}
 \begin{minipage}{0.5\linewidth}
 \captionof{figure}{Sum of absolute differences scores of clip 1} \label{fig: clip_1_sad2}
 \centering
@@ -140,6 +109,50 @@ Table \ref{tab:sad_results} and Table \ref{tab:hd_results} shows the respective 
 \includegraphics[width=3.6in]{../output/clip_3_score_hd.png}
 \end{minipage}
 \vspace*{10pt}
+ 
+Table \ref{tab:sad_results} and Table \ref{tab:hd_results} shows the respective scores for both methods. On average, histogram differences achieve a higher score across all three metrics comparing to sum of absolute differences method. For example, the transition from frame 164 (Figure \ref{clip_3_f164}) to frame 165 (Figure \ref{fig: clip_3_f165}) is not detected by the latter but it is by the former. It performs especially better in the montage section in clip 3, where there are frequent shot changes. 
+
+ \begin{table}[h]
+ \caption{Shot detection performance with sum of absolute differences}
+  \centering
+  \begin{tabular}{lllllll}
+    \toprule
+    Clip		& Correct (C)	& Missed (M)	& Falsely detected (F) 	& Recall (V) 		& Precision (P) 	& $F_1$ \\
+    \midrule
+    1			& 	1					& 0					& 1 									& 1					& 0.5					& 0.6667 \\
+    2			& 	7					& 0					& 2 									& 1					& 0.7778				& 0.8750 \\
+    3			& 	5					& 16					& 0 									& 0.2381			& 1						& 0.3846	\\
+    \bottomrule
+  \end{tabular}
+  \label{tab:sad_results}
+\end{table}
+
+\begin{table}[h]
+ \caption{Shot detection performance with histogram differences}
+  \centering
+  \begin{tabular}{lllllll}
+    \toprule
+    Clip		& Correct (C)	& Missed (M)	& Falsely detected (F) 	& Recall (V) 		& Precision (P) 	& $F_1$ \\
+    \midrule
+    1			& 	1					& 0					& 0 									& 1					& 1						& 1	\\
+    2			& 	6					& 1					& 1 									& 0.8571			& 0.8571				& 0.8571	\\
+    3			& 	15				& 6					& 1 									& 0.7142			& 0.9375				& 0.8118	\\
+    \bottomrule
+  \end{tabular}
+  \label{tab:hd_results}
+\end{table}
+
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Frame 164 of clip 3} \label{clip_3_f164}
+\centering
+\includegraphics[width=3in]{../original_data/clip_3/0164.jpg}
+\end{minipage}%
+\begin{minipage}{0.5\linewidth}
+\captionof{figure}{Frame 165 of clip 3} \label{fig: clip_3_f165}
+\centering
+\includegraphics[width=3in]{../original_data/clip_3/0165.jpg}
+\end{minipage}
+\vspace*{10pt}
 
 The relevant code is in \texttt{shot.py}. To get the graphs of shot detection, run the command below. 
 \begin{minted}[bgcolor=bg]{sh}
@@ -153,11 +166,11 @@ python3 run.py add_shot_numbe -i <input directory> -o <output directory>
 \end{minted}
 
 \section{Logo detection}
-Template matching is an object detection algorithm which is translation invariant but not scale or rotation invariant. As we are detecting a logo, we can assume that the target of detection will be in a known orientation. Due to the possibility that there may be multiple occurrences of the logo in a frame, we cannot simply match SIFT features between the logo template and a frame. Template matching is run on templates of different sizes because the size of the logo in a frame is unknown. Then, a score is calculated for all the matches by normalized cross-correlation. The normalized version is chosen because brighter patches will not have a higher score. Also, the score obtained will be in the range [0, 1] and this makes choosing a threshold more intuitive. As the logo of the template and the one in the frame might be of different, possibly due to different resolutions or styles, a looser threshold is first used to filter out the irrelevant matches. 
+Template matching is an object detection algorithm which is translation invariant but not scale or rotation invariant. As we are detecting the news company's logo, we can assume that the target of detection will be in a known orientation. Due to the possibility that there may be multiple occurrences of the logo in a frame, we cannot simply match SIFT features between the logo template and a frame. Template matching is run on templates of different sizes because the size of the logo in a frame is unknown. Then, a score is calculated for all the matches by normalized cross-correlation. The normalized version is chosen because brighter patches will not have a higher score. Also, the score obtained will be in the range [0, 1] and this makes choosing a threshold more intuitive. As the logo of the template and the one in the frame might be slightly different, possibly due to the differences in resolutions or styles, a looser threshold is first used to filter out the irrelevant matches. 
 
 For each match, if its score is greater than the loose threshold, it is kept. Then, the algorithm checks if that particular match is a slight translation of a match we have a already decided to keep. If it is, the match is discarded. This prevents having multiple boxes around one logo. Afterwards, SIFT descriptors are calculated for the remaining matches and a score is calculated using feature matching and Lowe's ratio test with the logo template. If a match's score is above a tighter threshold, it is declared as a match of the template and a box is put around the match.
 
-The logo detection was the most difficult part of the project for me. I originally only did one pass with either normalized cross-correlation or SIFT feature matching. However, this led to fairly poor results, with the algorithm often unable to detect multiple logos and including many irrelevant matches. Therefore, the two passes approach, first with a looser threshold using normalized cross-correlation and then a tighter threshold with SIFT feature matching, is used. As can be seen in Figure \ref{fig: logo_good}, the algorithm can detect multiple logos.
+The logo detection was the most difficult part of the project for me. I originally only did one pass with either normalized cross-correlation or SIFT feature matching. However, this led to fairly poor results, with the algorithm often unable to detect multiple logos and including many irrelevant matches. Therefore, the two passes approach, first with a looser threshold using normalized cross-correlation and then a tighter threshold with SIFT feature matching, is used. As can be seen in Figure \ref{fig: logo_good}, the algorithm can detect multiple logos. In hindsight, it would have been more efficient to scale down the images to multiple scales instead of scaling down the templates. This is because sliding the template across the image takes much longer than resizing every frame to different scales.
 
 \vspace*{20pt}
 \begin{minipage}{0.5\linewidth}
