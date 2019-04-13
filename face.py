@@ -384,7 +384,7 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
     using the method specified in classification variable using model_path.
     """
     print("face_detection_cascade")
-    XML_FILENAME = "haarcascade_frontalface_default.xml"
+    XML_FILENAME = "models/haarcascade_frontalface_default.xml"
     F_TEXT = "Female"
     M_TEXT = "Male"
     O_TEXT = "Not sure"
