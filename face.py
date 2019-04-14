@@ -284,7 +284,7 @@ def train_model(model_path, classification):
         model.add(Dropout(0.5))
         model.add(Dense(2, activation="softmax"))
 
-        adam = Adam(lr=0.001)
+        adam = Adam(lr=0.0005)
         model.compile(loss="binary_crossentropy", optimizer=adam, metrics=["accuracy"])
 
         model.fit(x_train, y_train, epochs=10)
@@ -378,7 +378,7 @@ def face_detection_hsv(input_dir, output_dir):
         new_img = cv2.bitwise_and(img, img, mask=mask)
         cv2.imwrite(os.path.join(output_dir, filename), new_img)
 
-def face_detection_cascade(input_dir, output_dir, model_path, classification):
+def face_detection_cascade(input_dir, output_dir, model_path, classification, min_size):
     """
     Face detection with classifier, face tracking, and gender classification
     using the method specified in classification variable using model_path.
@@ -426,7 +426,7 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
         ##############################
         face_cascade = cv2.CascadeClassifier(XML_FILENAME)
         faces = face_cascade.detectMultiScale(img_g, scaleFactor=1.3,
-            minNeighbors=3, minSize=(70, 70))
+            minNeighbors=5, minSize=(min_size, min_size))
         curr_faces = {}
 
         for x, y, w, h in faces:
@@ -506,11 +506,12 @@ def face_detection_cascade(input_dir, output_dir, model_path, classification):
                 assert w == h
                 face = cv2.resize(face, (size, size))
                 prediction = model.predict(np.array([face]), verbose=0)
-                if prediction == -1:
+                prediction = prediction[0]
+                if prediction[0] > 0.5:
                     text = str(face_number) + " " + F_TEXT + ": " +\
                         format(prediction[0]*100, ".2f") + "%"
                     color = F_COLOR
-                elif prediction == 1:
+                elif prediction[0] < 0.5:
                     text = str(face_number) + " " + M_TEXT + ": " +\
                         format(prediction[0]*100, ".2f") + "%"
                     color = M_COLOR
