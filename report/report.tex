@@ -166,11 +166,11 @@ python3 run.py add_shot_numbe -i <input directory> -o <output directory>
 \end{minted}
 
 \section{Logo detection}
-Template matching is an object detection algorithm which is translation invariant but not scale or rotation invariant. As we are detecting the news company's logo, we can assume that the target of detection will be in a known orientation. Due to the possibility that there may be multiple occurrences of the logo in a frame, we cannot simply match SIFT features between the logo template and a frame. Template matching is run on templates of different sizes because the size of the logo in a frame is unknown. Then, a score is calculated for all the matches by normalized cross-correlation. The normalized version is chosen because brighter patches will not have a higher score. Also, the score obtained will be in the range [0, 1] and this makes choosing a threshold more intuitive. As the logo of the template and the one in the frame might be slightly different, possibly due to the differences in resolutions or styles, a looser threshold is first used to filter out the irrelevant matches. 
+Template matching is an object detection algorithm which is translation invariant but not scale or rotation invariant. As we are detecting the news company's logo, we can assume that the target of detection will be in a known orientation. Due to the possibility that there may be multiple occurrences of the logo in a frame, we cannot simply match SIFT features between the logo template and a frame. Template matching is run on templates of different sizes because the size of the logo in a frame is unknown. Then, a score is calculated for all the matches by normalized cross-correlation. The normalized version is chosen because brighter patches will not have a higher score. Also, the score obtained will be in the range [0, 1] and this makes choosing a threshold more intuitive. As the logo in the template and the one in the frame might be slightly different, possibly due to the differences in resolutions or styles, a looser threshold is first used to filter out the irrelevant matches. 
 
-For each match, if its score is greater than the loose threshold, it is kept. Then, the algorithm checks if that particular match is a slight translation of a match we have a already decided to keep. If it is, the match is discarded. This prevents having multiple boxes around one logo. Afterwards, SIFT descriptors are calculated for the remaining matches and a score is calculated using feature matching and Lowe's ratio test with the logo template. If a match's score is above a tighter threshold, it is declared as a match of the template and a box is put around the match.
+For each match, if its score is greater than the loose threshold, it is kept. Then, the algorithm checks if that particular match is a slight translation of a match we have already decided to keep. If it is, the match is discarded. This prevents having multiple boxes around one logo. Afterwards, SIFT descriptors are calculated for the remaining matches and a score is calculated using feature matching and Lowe's ratio test with the logo template. If a match's score is above a different threshold, it is declared as a match of the template and a box is put around the match.
 
-The logo detection was the most difficult part of the project for me. I originally only did one pass with either normalized cross-correlation or SIFT feature matching. However, this led to fairly poor results, with the algorithm often unable to detect multiple logos and including many irrelevant matches. Therefore, the two passes approach, first with a looser threshold using normalized cross-correlation and then a tighter threshold with SIFT feature matching, is used. As can be seen in Figure \ref{fig: logo_good}, the algorithm can detect multiple logos. In hindsight, it would have been more efficient to scale down the images to multiple scales instead of scaling down the templates. This is because sliding the template across the image takes much longer than resizing every frame to different scales.
+Initially, I only did one pass with either normalized cross-correlation or SIFT feature matching. However, this led to fairly poor results, with the algorithm often unable to detect multiple logos and including many irrelevant matches. Therefore, the two passes approach, first with a looser threshold using normalized cross-correlation and then with another threshold with SIFT feature matching, is used. As can be seen in Figure \ref{fig: logo_good}, the algorithm can detect multiple logos. In hindsight, it would have been more efficient to scale down the images to multiple scales instead of scaling down the templates. This is because sliding the template across the image takes much longer than resizing every frame to different scales.
 
 \vspace*{20pt}
 \begin{minipage}{0.5\linewidth}
@@ -231,9 +231,9 @@ The initial attempt to detect faces is to use skin detection - trying to filter 
 
 The relevant code for HSV face detection is in \texttt{visualize\_distributions()} and \texttt{face\_detection\_hsv()} in \texttt{face.py}.
 
-I ended up using \texttt{cv2.CascadeClassifier} for detecting faces. The full name of this classifier is Haar feature-based cascade classifier for object detection. It is a OpenCV pre-trained classifier for face stored in an XML file. It works fairly well. It has no trouble detecting multiple people in a frame or people of colour, like in Figure \ref{fig: face_good}. However, it is sometimes unable to detect faces in a certain position. The detector was unable to detect the person on the left in any of the frames he appeared in that particular position in Figure \ref{fig: face_bad}.
+I ended up using \texttt{cv2.CascadeClassifier} for detecting faces. The full name of this classifier is Haar feature-based cascade classifier for object detection. It is a OpenCV pre-trained classifier for face stored in an XML file. It works fairly well. It has no trouble detecting multiple people in a frame or people of colour, like in Figure \ref{fig: face_good}. However, it is usually unable to detect faces turned to the side. The detector was unable to detect the person on the left in any of the frames he appeared in that particular position in Figure \ref{fig: face_bad}.
 
-After obtaining the faces in a frame, for each face in the current frame, the SIFT descriptors are found. Then, they are matched to the SIFT descriptors of each faces in the previous frame using feature matching and Lowe's ratio test. Then, a score is obtained from the number of matches. If the score is above a set threshold, the algorithm declares that the face we are looking at is found in the previous frame and we will display the index assigned to that particular face in the previous frame. If the face is not found, we assign a new index to the face.
+After obtaining the faces in a frame, for each face in the current frame, the SIFT descriptors are found. Then, they are matched to the SIFT descriptors of all the faces in the previous frame using feature matching and Lowe's ratio test. Then, a score is obtained from the number of matches. If the score is above a set threshold, the algorithm declares that the face we are looking at is found in the previous frame and we will display the index assigned to that particular face in the previous frame. If the face is not found, we assign a new index to the face. The index of each face is labelled on top of the box.
 
 \vspace*{10pt}
 \begin{minipage}{0.5\linewidth}
@@ -249,18 +249,18 @@ After obtaining the faces in a frame, for each face in the current frame, the SI
 \vspace*{10pt}
 
 \section{Gender classification}
-90\% of the images (234 images from each class) are used for training, whereas the other 10\% (26 images from each class) are used for testing the accuracy of the model.
+90\% of the images (234 images from each class) are used for training, whereas the other 10\% (26 images from each class) are used for testing the accuracy of the model. The accuracy is defined as the percent of correctly identified faces, not SIFT descriptors, in the cases of support-vector machine and neural network.
 
 \subsection*{SVM}
 The SIFT descriptors of the training images are passed into the SVM model for training.
-For each detected face, the SIFT descriptors are extracted and fed to the trained SVM model. Then, a prediction for each descriptor is obtained. If more descriptors are predicted as female than male, the image is classified as female. If more descriptors are predicted as male than female, the image is classified as male. If there are equal number of descriptors being predicted as both female and male, the image is then classified as unknown.
+Then, for each detected face in a frame, the SIFT descriptors are extracted and fed to the trained SVM model. A prediction for each descriptor is obtained. If more descriptors are predicted as female than male, the image is classified as female. If more descriptors are predicted as male than female, the image is classified as male. If there are equal number of descriptors being predicted as both female and male, the image is then classified as unknown.
 
 \subsection*{Neural network}
-The same as SVM, except with a neural network model instead. The model uses a binary crossentropy loss, adam for optimization, and accuracy as the metric. 
+The same as SVM, except with a neural network model instead. The model uses a binary crossentropy loss, adam for optimization, and accuracy as the metric. The neural network used is shown in Figure \ref{fig: nn_model}.
 
 \subsection*{CNN}
 All the training and testing images are padded with black borders to obtain a square shape and then resized to be 72 pixels by 72 pixels. The training images are then passed to the CNN model shown in Figure \ref{fig: cnn_model} for training. The model uses a binary crossentropy loss, stochastic gradient descent for optimization, and accuracy as the metric.
-Each detected face is padded to obtain a square shape. Then, the image is resized to be 72 pixels by 72 pixels. The resized image is then passed to the trained cnn model and a category prediction is obtained.
+Each detected face is padded to obtain a square shape. Then, the image is resized to be 72 pixels by 72 pixels. The resized image is then passed to the trained CNN model and a category prediction is obtained.
 
 \begin{minipage}{0.5\linewidth}
 \captionof{figure}{Neural network model} \label{fig: nn_model}
@@ -283,11 +283,12 @@ python3 run.py train -m <model path after training>
 The relevant code for face detection (including gender classification and face tracking) is in \texttt{face\_detection()} in \texttt{face.py}. Run the command below.
 \begin{minted}[bgcolor=bg]{sh}
 python3 run.py face_detection -i <input directory> -o <output directory>
--c <classification model (SVM, NN_SIFT, or CNN)> -m <trained model path> 
+-c <classification model (SVM, NN_SIFT, or CNN)> -m <trained model path>
+-s <min size for face detection> 
 \end{minted}
 
 \subsection*{Performance}
-Table \ref{tab:gender_classification} shows the test accuracies of the three models. As expected, CNN performed poorly, achieving an accuracy that is equivalent to random guesses, due to the very small training data size of 468.
+Table \ref{tab:gender_classification} shows the test accuracies of the three models. As expected, CNN performed poorly, achieving an accuracy that is equivalent to random guesses, due to the very small training data size of 468. It consistently classify all the faces as either female and male.
 
 \begin{table}[h]
  \caption{Gender classification performance}
@@ -310,7 +311,7 @@ The relevant code for combining all the frames to a video is in \texttt{make\_vi
 python3 run.py run_all -i <input directory> -o <output directory>
 -d <logo path> -t <min threshold for NCC> -m <trained model path>
 -c <classification model (SVM, NN_SIFT, or CNN)> -v <name of output video>
--f <frame per second>
+-f <frame per second> -s <min size for face detection>
 \end{minted}
 
 \section{References}
