@@ -41,10 +41,10 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
 
     # Compute template of different sizes
     if template.shape[0] < 50:
-        scales = np.linspace(0.8, 1.0, 6)[::-1]
+        # scales = np.linspace(0.8, 1.0, 6)[::-1]
+        scales = np.linspace(0.9, 1.0, 2)[::-1]
     else:
-        # scales = np.linspace(0.1, 1.0, 25)[::-1]
-        scales = np.linspace(0.5, 1.0, 10)[::-1]
+        scales = np.linspace(0.1, 1.0, 25)[::-1]
     templates = []
     ratios = []
     for scale in scales:
@@ -62,7 +62,7 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
         p = -1
         q = -1
         matches = []
-        # Loop through the templates from small to big
+        # Loop through the templates
         for i in range(len(templates) - 1, -1, -1):
             # Stop when template is bigger than image
             if img_g.shape[0] < templates[i].shape[0] or img_g.shape[1] < templates[i].shape[1]:
@@ -122,7 +122,6 @@ def logo_detection(input_dir, output_dir, logo_path, min_threshold):
         for r, y, x, count in boxes:
             start_x, start_y = x, y
             end_x, end_y = int((x + w * r)), int((y + h * r))
-            # print(start_x, start_y, end_x, end_y)
             cv2.rectangle(img, (start_x, start_y), (end_x, end_y), (0, 255, 0), thickness=2)
 
         cv2.imwrite(os.path.join(output_dir, img_name), img)

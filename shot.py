@@ -5,6 +5,7 @@ import os
 
 def add_shot_number(input_dir, output_dir, shots):
     """
+    Add shot number using the shot changes specified in variable shots.
     """
     print("add_shot_number")
     if not os.path.isdir(output_dir):
@@ -95,7 +96,7 @@ def shot_detection(input_dir, method, k):
         prev_histogram = None
         for i in range(len(img_names)):
             # Default type is numpy.uint8
-            curr_img = cv2.imread(os.path.join(input_dir, img_names[i]))#.astype(np.int64)
+            curr_img = cv2.imread(os.path.join(input_dir, img_names[i]))
             # Default type is numpy.uint8
             curr_img_g = cv2.cvtColor(curr_img, cv2.COLOR_BGR2GRAY).astype(np.int16)
             histogram = np.histogram(np.ravel(curr_img_g), bins=np.arange(-1, 256))
