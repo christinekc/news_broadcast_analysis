@@ -74,23 +74,6 @@ def shot_detection(input_dir, method, k):
         title = "Sum of absolute differences"
         new_filename = "output/" + input_dir.name + "_score_sad2.png"
 
-    elif method == "SAD":
-        prev_img = None
-        for i in range(len(img_names)):
-            # Default type is numpy.uint64
-            curr_img = cv2.imread(os.path.join(input_dir, img_names[i])).astype(np.int64)
-            if i == 0:
-                r, c, d = curr_img.shape
-                prev_img = curr_img
-                continue
-            score = np.sum(np.abs(curr_img - prev_img))
-            scores.append(score)
-            prev_img = curr_img
-        x = np.arange(start_idx + 1, end_idx + 1)
-        scores = np.array(scores) / (r * c * d)
-        title = "Sum of absolute differences"
-        new_filename = "output/" + input_dir.name + "_score_sad2.png"
-
     # Histogram differences
     elif method == "HD":
         prev_histogram = None
