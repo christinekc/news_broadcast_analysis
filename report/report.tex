@@ -252,7 +252,7 @@ After obtaining the faces in a frame, for each face in the current frame, the SI
 90\% of the images (234 images from each class) are used for training, whereas the other 10\% (26 images from each class) are used for testing the accuracy of the model. The accuracy is defined as the percent of correctly identified faces, not SIFT descriptors, in the cases of support-vector machine and neural network.
 
 \subsection*{SVM}
-The SIFT descriptors of the training images are passed into the SVM model for training.
+The SIFT descriptors of the training images are passed into the SVM model for training. A radial basis function kernel is used.
 Then, for each detected face in a frame, the SIFT descriptors are extracted and fed to the trained SVM model. A prediction for each descriptor is obtained. If more descriptors are predicted as female than male, the image is classified as female. If more descriptors are predicted as male than female, the image is classified as male. If there are equal number of descriptors being predicted as both female and male, the image is then classified as unknown.
 
 \subsection*{Neural network}
@@ -274,6 +274,7 @@ Each detected face is padded to obtain a square shape. Then, the image is resize
 \end{minipage}
 \vspace*{10pt}
 
+\newpage
 The relevant code for training any of the three models is in \texttt{train\_model()} in \texttt{face.py}. To train a gender classification model, run the command below.
 \begin{minted}[bgcolor=bg]{sh}
 python3 run.py train -m <model path after training> 
