@@ -2,7 +2,8 @@ original_data/clip_1/
 original_data/clip_2/
 original_data/clip_3/
 __pycache__/
-report/_minted-report/
+report/
+output/
 
 # latex
 *.aux
