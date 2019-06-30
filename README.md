@@ -57,7 +57,7 @@ F_1 &= \frac{2 \times P \times V}{P + V} \\
 
 ![image](output/clip_3_score_hd.png)
 
-Table [tab:sad~r~esults] and Table [tab:hd~r~esults] shows the
+The two tables below shows the
 respective scores for both methods. On average, the histogram
 differences (HD) method achieve a higher score across all three metrics
 comparing to sum of absolute differences (SAD) method. For example, the
@@ -68,31 +68,17 @@ where there are frequent shot changes. Also, we see that SAD scored
 frame 22 to frame 32 in clip 1 quite high when the man was only moving
 to the left of the frame.
 
-[h]
+|Clip & Correct (C) | Missed (M) | Falsely detected (F) | Recall (V) | Precision (P) | F_1|
+|-------------------|------------|----------------------|------------|---------------|----|
+|1 | 1 | 0 	| 1 | 1 		| 0.5 		| 0.6667|
+|2 | 7 | 0 	| 2 | 1 		| 0.7778 	| 0.8750|
+|3 | 5 | 16 | 0 | 0.2381 	| 1 		| 0.3846|
 
-<span>lllllll</span> Clip & Correct (C) & Missed (M) & Falsely detected
-(F) & Recall (V) & Precision (P) & $F_1$\
-1 & 1 & 0 & 1 & 1 & 0.5 & 0.6667\
-2 & 7 & 0 & 2 & 1 & 0.7778 & 0.8750\
-3 & 5 & 16 & 0 & 0.2381 & 1 & 0.3846\
-
-[tab:sad~r~esults]
-
-[h]
-
-<span>lllllll</span> Clip & Correct (C) & Missed (M) & Falsely detected
-(F) & Recall (V) & Precision (P) & $F_1$\
-1 & 1 & 0 & 0 & 1 & 1 & 1\
-2 & 6 & 1 & 1 & 0.8571 & 0.8571 & 0.8571\
-3 & 15 & 6 & 1 & 0.7142 & 0.9375 & 0.8118\
-
-[tab:hd~r~esults]
-
-<span>0.5</span> [clip~3f~164]
-![image](../original_data/clip_3/0164.jpg)
-
-<span>0.5</span> [fig: clip~3f~165]
-![image](../original_data/clip_3/0165.jpg)
+|Clip & Correct (C) | Missed (M) | Falsely detected (F) | Recall (V) | Precision (P) | F_1|
+|-------------------|------------|----------------------|------------|---------------|----|			
+|1 | 1 	| 0 | 0 | 1 		| 1 		| 1 |
+|2 | 6 	| 1 | 1 | 0.8571 	| 0.8571 	| 0.8571 |
+|3 | 15 | 6 | 1 | 0.7142 	| 0.9375 	| 0.8118 |
 
 The relevant code is in `shot.py`. To get the graphs of shot detection,
 run the command below.
@@ -152,10 +138,8 @@ images to multiple scales instead of scaling down the templates. This is
 because sliding the template across the image takes much longer than
 resizing every frame to different scales.
 
-<span>0.5</span> [fig: logo~b~ad]
 ![image](output/clip_1_logo/104.jpg)
 
-<span>0.5</span> [fig: logo~g~ood]
 ![image](output/clip_1_logo/052.jpg)
 
 The relevant code is in `logo.py`. To run logo detection, run the
@@ -285,20 +269,17 @@ python3 run.py face_detection -i <input directory> -o <output directory>
 ```
 
 ### Performance
-Table [tab:gender~c~lassification] shows the test accuracies of the
+The table below shows the test accuracies of the
 three models. As expected, CNN performed poorly, achieving an accuracy
 that is equivalent to random guesses, due to the very small training
 data size of 468. It consistently classify all the faces as either
 female and male.
 
-[h]
-
-<span>lll</span> Model & Description & Accuracy on test set\
-SVM & Using SIFT descriptors of faces & 100.00%\
-Neural network & Using SIFT descriptors of faces & 92.30%\
-CNN & Using cropped and resized faces & 50.00%\
-
-[tab:gender~c~lassification]
+|Model 			| Description 					  | Accuracy on test set|
+|---------------|---------------------------------|---------------------|
+|SVM   			| Using SIFT descriptors of faces | 100.00%|
+|Neural network | Using SIFT descriptors of faces | 92.30%|
+|CNN 			| Using cropped and resized faces | 50.00%|
 
 ## Make video
 
