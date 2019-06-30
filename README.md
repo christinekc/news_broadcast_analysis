@@ -1,18 +1,23 @@
-Shot detection
-==============
+# News broadcast analysis
+Features:
+* Shot detection
+* Logo detection
+* Face detection
+* Face tracking
+* Gender classifier
+
+## Shot detection
 
 A score is calculated for each frame using either the sum of absolute
 differences method or the histogram differences method. Given the mean
-$\mu$ and standard deviation $\sigma$ of all the scores, a threshold is
-chosen as $$\text{threshold} = \mu + k\times \sigma$$ where $k$ is an
+(mu) and standard deviation (sigma) of all the scores, a threshold is
+chosen as threshold = mu + k x sigma where k is an
 integer. A shot is a series of frames taken by continuously by one
 camera. A shot change is declared when the value of the score becomes
 greater than the threshold and then becomes smaller than the threshold
 (similar to a peak above the threshold line).
 
-Sum of absolute differences {#sum-of-absolute-differences .unnumbered}
----------------------------
-
+### Sum of absolute differences
 A score is assigned to each frame by calculating the sum of the absolute
 differences between consecutive frames for every pixel. This value is
 then normalized by the size of the frame. When the score of a frame is
@@ -20,22 +25,18 @@ greater than the threshold, a shot change is declared. This method works
 quite well with simple videos but it is not robust against movements and
 changes in lighting.
 
-Histogram differences {#histogram-differences .unnumbered}
----------------------
-
+### Histogram differences
 Each frame is converted into a gray-scale image. A histogram with 256
 bins, representing all the possible values of a pixel, is created for
 each frame. Then, a score is assigned by calculating the sum of the
 absolute differences between histograms of consecutive frames. This
 method is more robust against small changes in a frame.
 
-Performance {#performance .unnumbered}
------------
-
-Let $C$ be the number of correctly identified cuts, $M$ be the number of
-cuts that are not identified, and $F$ be the number of falsely
+### Performance
+Let C be the number of correctly identified cuts, $M$ be the number of
+cuts that are not identified, and F be the number of falsely
 identified cuts. To evaluate how well the algorithm is detecting the
-shots, the recall (V), precision (P) and $F_1$ scores for each clip are
+shots, the recall (V), precision (P) and F_1 scores for each clip are
 calculated. They are defined as below.
 
 $$\begin{split}
@@ -44,23 +45,17 @@ P &= \frac{C}{C + F} \quad\text{(probability that a detected shot change is an a
 F_1 &= \frac{2 \times P \times V}{P + V} \\
 \end{split}$$
 
-<span>0.5</span> [fig: clip~1s~ad2]
-![image](../output/clip_1_score_sad2.png)
+![image](output/clip_1_score_sad2.png)
 
-<span>0.5</span> [fig: clip~1h~d]
-![image](../output/clip_1_score_hd.png)
+![image](output/clip_1_score_hd.png)
 
-<span>0.5</span> [fig: clip~2s~ad2]
-![image](../output/clip_2_score_sad2.png)
+![image](output/clip_2_score_sad2.png)
 
-<span>0.5</span> [fig: clip~2h~d]
-![image](../output/clip_2_score_hd.png)
+![image](output/clip_2_score_hd.png)
 
-<span>0.5</span> [fig: clip~3s~ad2]
-![image](../output/clip_3_score_sad2.png)
+![image](output/clip_3_score_sad2.png)
 
-<span>0.5</span> [fig: clip~3h~d]
-![image](../output/clip_3_score_hd.png)
+![image](output/clip_3_score_hd.png)
 
 Table [tab:sad~r~esults] and Table [tab:hd~r~esults] shows the
 respective scores for both methods. On average, the histogram
@@ -114,8 +109,7 @@ python3 run.py add_shot_numbe -i <input directory> -o <output directory>
 -k <k for thresholding>
 ```
 
-Logo detection
-==============
+## Logo detection
 
 Template matching is an object detection algorithm which is translation
 invariant but not scale or rotation invariant. As we are detecting the
@@ -159,10 +153,10 @@ because sliding the template across the image takes much longer than
 resizing every frame to different scales.
 
 <span>0.5</span> [fig: logo~b~ad]
-![image](../output/clip_1_logo/104.jpg)
+![image](output/clip_1_logo/104.jpg)
 
 <span>0.5</span> [fig: logo~g~ood]
-![image](../output/clip_1_logo/052.jpg)
+![image](output/clip_1_logo/052.jpg)
 
 The relevant code is in `logo.py`. To run logo detection, run the
 command below.
@@ -172,8 +166,7 @@ python3 run.py logo_detection -i <input directory> -o <output directory>
 -d <logo path> -t <min threshold for NCC>
 ```
 
-Face detection and tracking
-===========================
+## Face detection and tracking
 
 There are 260 images in the female and male classes respectively. Each
 image is accompanied by a `.mat` file specifying the coordinates of the
@@ -199,15 +192,13 @@ of the man on the right in Figure [fig: hsv~b~ad] and includs a lot of
 the background.This model is especially poor when other things in the
 frame are very similar to human skin tone.
 
-<span>0.5</span> [fig: rgb]
-![image](../output/f_train_rgb_distributions.png)
+![image](output/f_train_rgb_distributions.png)
 
-<span>0.5</span> [fig: hsv]
-![image](../output/f_train_hsv_distributions.png)
+![image](output/f_train_hsv_distributions.png)
 
-<span>0.5</span> [fig: hsv~g~ood] ![image](../output/clip_1_hsv/160.jpg)
+![image](output/clip_1_hsv/160.jpg)
 
-<span>0.5</span> [fig: hsv~b~ad] ![image](../output/clip_1_hsv/050.jpg)
+![image](output/clip_1_hsv/050.jpg)
 
 The relevant code for HSV face detection is in
 `visualize_distributions()` and `face_detection_hsv()` in `face.py`.
@@ -232,13 +223,11 @@ and we will display the index assigned to that particular face in the
 previous frame. If the face is not found, we assign a new index to the
 face. The index of each face is labelled on top of the box.
 
-<span>0.5</span> [fig: face~g~ood] ![image](../output/clip_2/069.jpg)
+![image](output/clip_2/069.jpg)
 
-<span>0.5</span> [fig: face~b~ad]
-![image](../output/clip_1_face/110.jpg)
+![image](output/clip_1_face/110.jpg)
 
-Gender classification
-=====================
+## Gender classification
 
 90% of the images (234 images from each class) are used for training,
 whereas the other 10% (26 images from each class) are used for testing
@@ -246,9 +235,7 @@ the accuracy of the model. The accuracy is defined as the percent of
 correctly identified faces, not SIFT descriptors, in the cases of
 support-vector machine and neural network.
 
-SVM {#svm .unnumbered}
----
-
+### SVM
 The SIFT descriptors of the training images are passed into the SVM
 model for training. A radial basis function kernel is used. Then, for
 each detected face in a frame, the SIFT descriptors are extracted and
@@ -259,16 +246,12 @@ than female, the image is classified as male. If there are equal number
 of descriptors being predicted as both female and male, the image is
 then classified as unknown.
 
-Neural network {#neural-network .unnumbered}
---------------
-
+### Neural network
 The same as SVM, except with a neural network model instead. The model
 uses a binary crossentropy loss, adam for optimization, and accuracy as
 the metric. The neural network used is shown in Figure [fig: nn~m~odel].
 
-CNN {#cnn .unnumbered}
----
-
+### CNN
 All the training and testing images are padded with black borders to
 obtain a square shape and then resized to be 72 pixels by 72 pixels. The
 training images are then passed to the CNN model shown in Figure [fig:
@@ -278,9 +261,9 @@ metric. Each detected face is padded to obtain a square shape. Then, the
 image is resized to be 72 pixels by 72 pixels. The resized image is then
 passed to the trained CNN model and a category prediction is obtained.
 
-<span>0.5</span> [fig: nn~m~odel] ![image](../output/nn_model.png)
+![image](output/nn_model.png)
 
-<span>0.5</span> [fig: cnn~m~odel] ![image](../output/cnn_model.png)
+![image](output/cnn_model.png)
 
 The relevant code for training any of the three models is in
 `train_model()` in `face.py`. To train a gender classification model,
@@ -301,9 +284,7 @@ python3 run.py face_detection -i <input directory> -o <output directory>
 -s <min size for face detection> 
 ```
 
-Performance {#performance-1 .unnumbered}
------------
-
+### Performance
 Table [tab:gender~c~lassification] shows the test accuracies of the
 three models. As expected, CNN performed poorly, achieving an accuracy
 that is equivalent to random guesses, due to the very small training
@@ -319,8 +300,7 @@ CNN & Using cropped and resized faces & 50.00%\
 
 [tab:gender~c~lassification]
 
-Make video
-==========
+## Make video
 
 The relevant code for combining all the frames to a video is in
 `make_video()` in `utils.py`. To do logo detection, face detection, face
@@ -334,8 +314,7 @@ python3 run.py run_all -i <input directory> -o <output directory>
 -f <frame per second> -s <min size for face detection>
 ```
 
-References
-==========
+## References
 
 [Video shot boundary detection based on color
 histogram](https://www-nlpir.nist.gov/projects/tvpubs/tvpapers03/ramonlull.paper.pdf)
@@ -346,8 +325,3 @@ detection](https://en.wikipedia.org/wiki/Shot_transition_detection)
 [Shot detection using pixel wise difference with adaptive threshold and
 color histogram method in compressed and uncompressed
 video](https://pdfs.semanticscholar.org/a662/2eed66acfddd9ba5ffe92b47c0af8ab335c3.pdf)
-
-Code
-====
-
-in <span>shot, logo, face, utils, run</span> <span> </span>
